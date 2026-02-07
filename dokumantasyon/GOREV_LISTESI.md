@@ -104,3 +104,13 @@
 ---
 
 **Son Güncelleme:** 7 Şubat 2026
+
+## 🚀 Gelecek Vizyonu & İş Fikri Backlog
+Bu liste, MVP sonrası projeyi bir girişime (Start-up) dönüştürmek için saklanmaktadır.
+
+- [ ] **SaaS Dönüşümü:** Çoklu kullanıcı desteği (Multi-tenancy) ile arkadaşlara link atıp davet etme.
+- [ ] **Aile Planı (Gamification):** Eşler veya aile üyeleri arasında "Kim daha iyi uyudu?" liderlik tablosu.
+- [ ] **Kişiselleştirilmiş Koçluk:** 
+  - Sporcu profili -> "Protein al, kas onarımı eksik."
+  - Beyaz yakalı profili -> "Geç saatte mail bakma, REM düşüyor."
+- [ ] **Auth Sistemi:** Google/Apple ile giriş yapıp verileri bulutta kişiye özel saklama.

@@ -14,7 +14,18 @@ except ImportError:
     from database import engine, Base, get_db
     from models import SleepSession, SleepSegment
 
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI()
+
+# --- CORS AYARLARI (Ön Yüzden Gelen İstekleri Kabul Et) ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Güvenlik için ileride sadece domain'e kısıtlanabilir
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Tabloları oluştur
 Base.metadata.create_all(bind=engine)
@@ -234,6 +245,45 @@ async def receive_sleep_data(request: Request, db: Session = Depends(get_db)):
         "session_id": new_session.id,
         "summary_minutes": stats,
         "ai_advice": ai_advice
+    }
+
+@app.get("/latest-sleep")
+def get_latest_sleep(db: Session = Depends(get_db)):
+    """
+    En son kaydedilen uyku oturumunu getirir.
+    Frontend Dashboard için ana veri kaynağıdır.
+    """
+    latest_session = db.query(SleepSession).order_by(SleepSession.input_date.desc()).first()
+    
+    if not latest_session:
+        return {"status": "empty", "message": "Henüz veri yok."}
+    
+    # İstatistikleri sözlük olarak hazırla
+    stats = {
+        "total_sleep": latest_session.total_sleep_duration,
+        "deep": latest_session.deep_sleep_duration,
+        "rem": latest_session.rem_sleep_duration,
+        "core": latest_session.core_sleep_duration,
+        "awake": latest_session.awake_duration,
+        "in_bed": latest_session.total_time_in_bed
+    }
+    
+    # Formatlı değerler (UI için hazır stringler)
+    formatted = {
+        "total": latest_session.total_sleep_formatted,
+        "deep": latest_session.deep_formatted,
+        "rem": latest_session.rem_formatted,
+        "awake": latest_session.awake_formatted,
+        "date": latest_session.input_date.strftime("%d.%m.%Y %H:%M")
+    }
+
+    return {
+        "status": "success",
+        "data": {
+            "stats": stats,
+            "formatted": formatted,
+            "session_id": latest_session.id
+        }
     }
 
 if __name__ == "__main__":
