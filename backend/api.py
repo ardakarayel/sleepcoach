@@ -208,10 +208,27 @@ async def receive_sleep_data(request: Request, db: Session = Depends(get_db)):
     db.refresh(new_session)
 
     print(f"✅ KAYDEDİLDİ! Oturum ID: {new_session.id}")
+    
+    # --- AI AGENT ÇAĞRISI (SleepCoach) ---
+    ai_advice = None
+    try:
+        from agents.coach import SleepCoach
+        # Ajanı başlat (API Key çevreden okunur)
+        coach = SleepCoach()
+        
+        print("🤖 SleepCoach AI Analizi Başlatılıyor...")
+        ai_advice = coach.generate_advice(stats)
+        print(f"💡 AI Tavsiyesi: {ai_advice}")
+        
+    except Exception as e:
+        print(f"⚠️ AI Analiz Hatası: {str(e)}")
+        ai_advice = "Koç şu an analiz yapamıyor, ama verilerin güvende."
+
     return {
         "status": "success",
         "session_id": new_session.id,
-        "summary_minutes": stats
+        "summary_minutes": stats,
+        "ai_advice": ai_advice
     }
 
 if __name__ == "__main__":
