@@ -251,30 +251,54 @@ async def receive_sleep_data(request: Request, db: Session = Depends(get_db)):
 def get_latest_sleep(db: Session = Depends(get_db)):
     """
     En son kaydedilen uyku oturumunu getirir.
-    Frontend Dashboard için ana veri kaynağıdır.
+    Ek olarak 'Navigation' (önceki/sonraki) verisini de döner.
     """
     latest_session = db.query(SleepSession).order_by(SleepSession.input_date.desc()).first()
     
     if not latest_session:
         return {"status": "empty", "message": "Henüz veri yok."}
     
-    # İstatistikleri sözlük olarak hazırla
+    # Navigation: Sadece önceki kayıt olabilir (Son zaten bu)
+    prev_session = db.query(SleepSession).filter(SleepSession.input_date < latest_session.input_date).order_by(SleepSession.input_date.desc()).first()
+    
+    return prepare_session_response(latest_session, prev_session=prev_session, next_session=None)
+
+@app.get("/sleep/{session_id}")
+def get_sleep_by_id(session_id: int, db: Session = Depends(get_db)):
+    """
+    Belirli bir ID'ye sahip uyku oturumunu getirir.
+    Sağa/Sola geçişler için kullanılır.
+    """
+    current_session = db.query(SleepSession).filter(SleepSession.id == session_id).first()
+    
+    if not current_session:
+        return {"status": "error", "message": "Kayıt bulunamadı."}
+        
+    # Önceki Kayıt (Tarihi daha eski olan en yakın kayıt)
+    prev_session = db.query(SleepSession).filter(SleepSession.input_date < current_session.input_date).order_by(SleepSession.input_date.desc()).first()
+    
+    # Sonraki Kayıt (Tarihi daha yeni olan en yakın kayıt)
+    next_session = db.query(SleepSession).filter(SleepSession.input_date > current_session.input_date).order_by(SleepSession.input_date.asc()).first()
+    
+    return prepare_session_response(current_session, prev_session, next_session)
+
+def prepare_session_response(session, prev_session=None, next_session=None):
+    """Ortak response hazırlayıcı"""
     stats = {
-        "total_sleep": latest_session.total_sleep_duration,
-        "deep": latest_session.deep_sleep_duration,
-        "rem": latest_session.rem_sleep_duration,
-        "core": latest_session.core_sleep_duration,
-        "awake": latest_session.awake_duration,
-        "in_bed": latest_session.total_time_in_bed
+        "total_sleep": session.total_sleep_duration,
+        "deep": session.deep_sleep_duration,
+        "rem": session.rem_sleep_duration,
+        "core": session.core_sleep_duration,
+        "awake": session.awake_duration,
+        "in_bed": session.total_time_in_bed
     }
     
-    # Formatlı değerler (UI için hazır stringler)
     formatted = {
-        "total": latest_session.total_sleep_formatted,
-        "deep": latest_session.deep_formatted,
-        "rem": latest_session.rem_formatted,
-        "awake": latest_session.awake_formatted,
-        "date": latest_session.input_date.strftime("%d.%m.%Y %H:%M")
+        "total": session.total_sleep_formatted,
+        "deep": session.deep_formatted,
+        "rem": session.rem_formatted,
+        "awake": session.awake_formatted,
+        "date": session.input_date.strftime("%d.%m.%Y %H:%M")
     }
 
     return {
@@ -282,7 +306,11 @@ def get_latest_sleep(db: Session = Depends(get_db)):
         "data": {
             "stats": stats,
             "formatted": formatted,
-            "session_id": latest_session.id
+            "session_id": session.id
+        },
+        "navigation": {
+            "prev_id": prev_session.id if prev_session else None,
+            "next_id": next_session.id if next_session else None
         }
     }
 

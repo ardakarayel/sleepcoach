@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 
-// Tip tanımları (Backend stats'a uygun)
+// Tip tanımları
 interface SleepData {
   stats: {
     total_sleep: number;
@@ -20,124 +20,154 @@ interface SleepData {
   };
 }
 
+interface Navigation {
+  prev_id: number | null;
+  next_id: number | null;
+}
+
 export default function Home() {
   const [data, setData] = useState<SleepData | null>(null);
+  const [nav, setNav] = useState<Navigation>({ prev_id: null, next_id: null });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // API URL'sini .env.local'dan al
+  // Veri Çekme Fonksiyonu
+  async function fetchSleepData(endpoint: string) {
+    setLoading(true);
     const API_URL = process.env.NEXT_PUBLIC_API_URL;
+    try {
+      const res = await fetch(`${API_URL}${endpoint}`);
+      if (!res.ok) throw new Error('Sunucuya ulaşılamadı');
+      const json = await res.json();
 
-    async function fetchData() {
-      try {
-        const res = await fetch(`${API_URL}/latest-sleep`);
-
-        if (!res.ok) throw new Error('Sunucuya ulaşılamadı');
-
-        const json = await res.json();
-
-        if (json.status === 'success') {
-          setData(json.data);
-        } else {
-          setError(json.message || 'Veri bulunamadı.');
-        }
-      } catch (err: any) {
-        setError(err.message || 'Bir hata oluştu.');
-      } finally {
-        setLoading(false);
+      if (json.status === 'success') {
+        setData(json.data);
+        setNav(json.navigation || { prev_id: null, next_id: null });
+        setError(null);
+      } else {
+        setError(json.message || 'Veri bulunamadı.');
       }
+    } catch (err: any) {
+      setError(err.message || 'Bir hata oluştu.');
+    } finally {
+      setLoading(false);
     }
+  }
 
-    fetchData();
+  // İlk Açılış: Son Veriyi Getir
+  useEffect(() => {
+    fetchSleepData('/latest-sleep');
   }, []);
 
   // --- OLAĞANÜSTÜ DURUMLAR ---
-  if (loading) return (
-    <main className="min-h-screen bg-black text-white flex items-center justify-center">
-      <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
-    </main>
+  if (loading && !data) return (
+    <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+    </div>
   );
 
-  if (error) return (
-    <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 text-center">
+  if (error && !data) return (
+    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 text-center">
       <div className="text-4xl mb-4">⚠️</div>
-      <h2 className="text-xl font-bold mb-2">Ops! Bir sorun var.</h2>
       <p className="text-gray-400">{error}</p>
-    </main>
+      <button onClick={() => fetchSleepData('/latest-sleep')} className="mt-4 px-4 py-2 bg-gray-800 rounded-lg">Tekrar Dene</button>
+    </div>
   );
 
   if (!data) return null;
 
-  // Skor Hesaplama (Basit bir mantık: 8 saat = 100 puan, her eksik saat -10)
-  // Bu sadece görsel amaçlıdır, backend'den de çekebilirdik.
   const score = Math.min(100, Math.max(0, Math.round((data.stats.total_sleep / 480) * 100)));
 
   return (
-    <main className="min-h-screen bg-black text-white p-6 flex flex-col items-center max-w-md mx-auto">
-      {/* Üst Bar */}
-      <header className="w-full flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">
+    <main className="min-h-screen bg-black text-white p-6 flex flex-col items-center max-w-md mx-auto relative">
+
+      {/* Loading Overlay (Geçişlerde) */}
+      {loading && (
+        <div className="absolute inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm">
+          <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      )}
+
+      {/* Üst Bar ve Navigasyon */}
+      <header className="w-full flex justify-between items-center mb-6">
+        <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">
           SleepCoach
         </h1>
-        <div className="text-xs text-gray-500">{data.formatted.date}</div>
+
+        {/* Tarih ve Oklar */}
+        <div className="flex items-center gap-3 bg-gray-900/80 px-3 py-1.5 rounded-full border border-gray-800">
+          <button
+            disabled={!nav.prev_id}
+            onClick={() => nav.prev_id && fetchSleepData(`/sleep/${nav.prev_id}`)}
+            className={`text-lg ${nav.prev_id ? 'text-white hover:text-purple-400' : 'text-gray-700 cursor-not-allowed'}`}
+          >
+            ◀
+          </button>
+
+          <span className="text-xs font-mono text-gray-300 min-w-[100px] text-center">
+            {data.formatted.date}
+          </span>
+
+          <button
+            disabled={!nav.next_id}
+            onClick={() => nav.next_id && fetchSleepData(`/sleep/${nav.next_id}`)}
+            className={`text-lg ${nav.next_id ? 'text-white hover:text-purple-400' : 'text-gray-700 cursor-not-allowed'}`}
+          >
+            ▶
+          </button>
+        </div>
       </header>
 
       {/* Ana Skor Kartı */}
-      <div className="relative w-64 h-64 flex items-center justify-center mb-8">
-        <div className="absolute inset-0 rounded-full border-4 border-gray-800"></div>
-        <div className="absolute inset-0 rounded-full border-4 border-purple-500 border-t-transparent animate-spin-slow" style={{ animationDuration: '3s' }}></div>
+      <div className="relative w-64 h-64 flex items-center justify-center mb-8 shrink-0">
+        <div className="absolute inset-0 rounded-full border-4 border-gray-900"></div>
+        <div
+          className="absolute inset-0 rounded-full border-4 border-purple-500 border-t-transparent transition-all duration-1000"
+          style={{ transform: `rotate(${score * 3.6}deg)` }}
+        ></div>
 
-        <div className="text-center">
-          <span className="block text-6xl font-black bg-gradient-to-br from-white to-gray-400 bg-clip-text text-transparent">
+        <div className="text-center z-10">
+          <span className="block text-7xl font-black text-white tracking-tighter">
             {score}
           </span>
-          <span className="text-gray-500 text-xs tracking-widest uppercase mt-1">Uyku Skoru</span>
+          <span className="text-gray-500 text-[10px] tracking-[0.2em] uppercase mt-2 font-bold">Uyku Skoru</span>
         </div>
       </div>
 
-      {/* AI Koç Mesajı (Şimdilik Statik - İleride Canlı Olacak) */}
-      <div className="w-full bg-gray-900/50 backdrop-blur rounded-2xl p-5 mb-6 border border-gray-800/50 relative overflow-hidden group">
-        <div className="absolute top-0 left-0 w-1 h-full bg-purple-500"></div>
-        <div className="flex items-center gap-3 mb-2">
-          <span className="text-xl">🤖</span>
-          <h2 className="font-semibold text-purple-200 text-sm uppercase tracking-wide">AI Koçun Notu</h2>
+      {/* İstatistik Grid */}
+      <div className="grid grid-cols-2 gap-3 w-full mb-6">
+        <StatCard label="TOPLAM" value={data.formatted.total} color="text-white" border="border-gray-800" />
+        <StatCard label="DERİN" value={data.formatted.deep} color="text-blue-200" border="border-blue-900/30" />
+        <StatCard label="REM" value={data.formatted.rem} color="text-purple-200" border="border-purple-900/30" />
+        <StatCard label="UYANIKLIK" value={data.formatted.awake} color="text-red-200" border="border-red-900/30" />
+      </div>
+
+      {/* AI Koç Mesajı */}
+      <div className="w-full bg-gradient-to-br from-gray-900 to-black rounded-2xl p-5 border border-gray-800 relative overflow-hidden">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-lg">🤖</span>
+          <h2 className="font-bold text-gray-400 text-xs uppercase tracking-wide">Analiz</h2>
         </div>
         <p className="text-gray-300 text-sm leading-relaxed">
           {score > 80
-            ? "Harika bir uyku çekmişsin! Enerjin tavan yapmış durumda. Bugün zor işleri halletmek için mükemmel gün. 🚀"
-            : "Biraz uykusuz kalmışsın. Bugün kafein tüketimine dikkat et ve ağır spor yapma. Enerjini koru! 🔋"
+            ? "Mükemmel performans! Vücudun tam şarj olmuş. Bugün zorlu görevler için ideal."
+            : score > 50
+              ? "Ortalama bir uyku. Biraz daha erken yatsan süper olurdu. Akşam ışıkları kıs."
+              : "Düşük performans. Bugün kafeini abartma ve akşam 22:00 gibi yatağa gitmeye çalış. 🌙"
           }
         </p>
       </div>
 
-      {/* İstatistik Grid */}
-      <div className="grid grid-cols-2 gap-3 w-full">
-        {/* Toplam Süre */}
-        <div className="bg-gray-900/40 p-4 rounded-xl border border-gray-800/60">
-          <div className="text-gray-500 text-[10px] uppercase font-bold tracking-wider mb-1">TOPLAM</div>
-          <div className="text-xl font-bold text-white tracking-tight">{data.formatted.total}</div>
-        </div>
-
-        {/* Derin Uyku */}
-        <div className="bg-gray-900/40 p-4 rounded-xl border border-gray-800/60 transition-colors hover:border-blue-900/50">
-          <div className="text-blue-500/70 text-[10px] uppercase font-bold tracking-wider mb-1">DERİN</div>
-          <div className="text-xl font-bold text-blue-100 tracking-tight">{data.formatted.deep}</div>
-        </div>
-
-        {/* REM */}
-        <div className="bg-gray-900/40 p-4 rounded-xl border border-gray-800/60 transition-colors hover:border-purple-900/50">
-          <div className="text-purple-500/70 text-[10px] uppercase font-bold tracking-wider mb-1">REM</div>
-          <div className="text-xl font-bold text-purple-100 tracking-tight">{data.formatted.rem}</div>
-        </div>
-
-        {/* Uyanıklık */}
-        <div className="bg-gray-900/40 p-4 rounded-xl border border-gray-800/60 transition-colors hover:border-red-900/50">
-          <div className="text-red-500/70 text-[10px] uppercase font-bold tracking-wider mb-1">UYANIKLIK</div>
-          <div className="text-xl font-bold text-red-100 tracking-tight">{data.formatted.awake}</div>
-        </div>
-      </div>
-
     </main>
+  );
+}
+
+// Yardımcı Bileşen
+function StatCard({ label, value, color, border }: any) {
+  return (
+    <div className={`bg-gray-900/30 p-4 rounded-xl border ${border} flex flex-col justify-center`}>
+      <div className="text-gray-600 text-[9px] uppercase font-black tracking-widest mb-1">{label}</div>
+      <div className={`text-xl font-bold ${color} tracking-tight`}>{value}</div>
+    </div>
   );
 }

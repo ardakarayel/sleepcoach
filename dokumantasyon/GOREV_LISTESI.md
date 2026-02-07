@@ -97,9 +97,9 @@
 | 2 - Backend | 6-10 | ✅ DONE |
 | 3 - Rule Filter | 11-13 | ⏳ SIRADA |
 | 4 - AI Agent | 14-18 | ⏳ |
-| 5 - Otomasyon | 19-23 | 🟡 IN PROGRESS |
+| 5 - Otomasyon | 19-23 | ✅ DONE |
 | 6 - Maliyet | 24-25 | ✅ DONE (Kotasal) |
-| 7 - Frontend | 26-32 | ⏳ |
+| 7 - Frontend | 26-32 | ✅ DONE (MVP Dashboard) |
 
 ---
 
