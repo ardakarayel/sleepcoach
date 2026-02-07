@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Depends, HTTPException                                         
+from fastapi import FastAPI, Request, Depends, HTTPException
 from sqlalchemy.orm import Session
 import uvicorn
 import json
@@ -57,37 +57,26 @@ async def receive_sleep_data(request: Request, db: Session = Depends(get_db)):
     # --- DEDEKTİF MODU: Veriyi Bulma (GÜNCELLENDİ) ---
     raw_data = []
 
-    # 1. Gelen şey direkt bir Liste mi?
     if isinstance(payload, list):
         raw_data = payload
     
-    # 2. Gelen şey bir Sözlük (Dict) mü?
     elif isinstance(payload, dict):
         if "uyku_verisi" in payload:
             temp_data = payload["uyku_verisi"]
-            # Eğer 'uyku_verisi' bir String ise, onu Listeye çevir!
             if isinstance(temp_data, str):
-                try:
-                    temp_data = json.loads(temp_data)
-                except:
-                    print("⚠️ 'uyku_verisi' string idi ama JSON'a çevrilemedi.")
+                try: temp_data = json.loads(temp_data)
+                except: pass
             raw_data = temp_data
             
         elif "data" in payload: raw_data = payload["data"]
         elif "result" in payload: raw_data = payload["result"]
-        
-        # Eğer hala boşsa ve sözlük tek bir kayıt gibi duruyorsa (start/val var)
-        elif "start" in payload and "value" in payload:
-            raw_data = [payload]
-            
+        elif "start" in payload and "value" in payload: raw_data = [payload]
         else:
-            # Derin Arama: İç içe geçmiş olabilir
             for val in payload.values():
                 if isinstance(val, list) and len(val) > 0:
                     raw_data = val
                     break
 
-    # 3. Gelen şey String mi? (Bazen komple JSON string gelir)
     if isinstance(payload, str):
         try:
             parsed = json.loads(payload)
@@ -95,7 +84,6 @@ async def receive_sleep_data(request: Request, db: Session = Depends(get_db)):
             elif isinstance(parsed, dict) and "uyku_verisi" in parsed: raw_data = parsed["uyku_verisi"]
         except: pass
 
-    # --- SON KONTROL ---
     if not raw_data or not isinstance(raw_data, list):
          received_type = type(payload).__name__
          received_keys = list(payload.keys()) if isinstance(payload, dict) else "Yok"
@@ -105,7 +93,6 @@ async def receive_sleep_data(request: Request, db: Session = Depends(get_db)):
 
     print(f"📥 {len(raw_data)} satır veri yakalandı, hesaplanıyor...")
 
-    # --- İŞLEME ve KAYIT (Aynı kodlar) ---
     stats = {
         "deep": 0.0, "rem": 0.0, "core": 0.0, "awake": 0.0, "in_bed": 0.0, "total_sleep": 0.0
     }
@@ -171,3 +158,9 @@ async def receive_sleep_data(request: Request, db: Session = Depends(get_db)):
         "session_id": new_session.id,
         "summary_minutes": stats
     }
+
+# --- UNUTULAN KRİTİK PARÇA ---
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+    print(f"🚀 Sunucu Port {port} üzerinde başlatılıyor...")
+    uvicorn.run(app, host="0.0.0.0", port=port)
