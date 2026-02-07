@@ -1,0 +1,176 @@
+
+╔══════════════════════════════════════════════════════════════════╗
+║          💤 SLEEPCOACH MVP - UYGULAMA PLANI                      ║
+╚══════════════════════════════════════════════════════════════════╝
+
+"Bu uygulama uykunu ölçmez, uykunu anlamaya çalışır."
+
+Son Güncelleme: 6 Şubat 2026
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FAZ 1: VERİ KAYNAĞI (Gün 1-5)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+AMAÇ: Apple Health'ten veri çekme yöntemini belirlemek
+
+ÇEKİLECEK VERİLER:
+  • Uyku başlangıç / bitiş saati
+  • Uyku evreleri (REM, Deep, Core, Awake)
+  • Uyanma sayısı
+  • Kalp atış hızı (uyku sırasında)
+  • HRV (kalp ritmi değişkenliği)
+
+ERİŞİM SEÇENEKLERİ:
+  1. iOS HealthKit API (iOS app gerekir)
+  2. CSV Export/Import (manuel)
+  3. Garmin/Fitbit API (alternatif cihaz)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FAZ 2: BACKEND API (Gün 6-10)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+VERİTABANI TABLOLARI:
+
+  users           → Kullanıcılar
+  sleep_sessions  → Uyku verileri
+  insights        → AI yorumları
+  user_actions    → "Bugün denedim" kayıtları
+
+API ENDPOINT'LERİ:
+
+  POST /api/sleep         → Uyku verisi kaydet
+  GET  /api/sleep/history → Geçmiş veriler
+  GET  /api/insight/today → Bugünkü AI yorumu
+  POST /api/action        → "Bugün denedim" kaydet
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FAZ 3: RULE-BASED FİLTRE (Gün 11-13)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+AMAÇ: Gereksiz AI çağrısı yapmamak (maliyet kontrolü)
+
+AI ÇAĞIR:
+  ✓ Uyanma sayısı > 2
+  ✓ Deep sleep < %10
+  ✓ Son 3 gün aynı saatte uyanma
+
+AI ÇAĞIRMA:
+  ✗ Her şey normal aralıkta
+  ✗ Bugün zaten analiz yapıldı
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FAZ 4: AI AGENT (Gün 14-18)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+AGENT GÖREVİ:
+  1. Son 1 gece + son 7/14 gün verisini oku
+  2. Pattern ara (tekrar eden sorunlar)
+  3. TEK ana problem seç
+  4. TEK aksiyon öner
+
+ARANACAK PATTERN'LER:
+  • Aynı saatlerde uyanma
+  • REM / Deep düşüşü
+  • HRV değişimi
+
+AI ÇIKTI FORMATI (max 300 token):
+  ┌─────────────────────────────────────────┐
+  │ 1 kısa yorum                            │
+  │ 1 sebep                                 │
+  │ 1 aksiyon                               │
+  │ 1 takip cümlesi                         │
+  └─────────────────────────────────────────┘
+
+ÖRNEK TON:
+  "Son 4 gecedir aynı saatte uyanıyorsun.
+   Bu tesadüf değil.
+   Bugün yatmadan 2 saat önce yemek yememeyi deneyelim.
+   Yarın sonucu birlikte kontrol edeceğiz."
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FAZ 5: OTOMASYON (Gün 19-23)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GÜNLÜK OTOMATİK AKIŞ:
+
+  08:00  →  Son gecenin uyku verisi çekilir
+         →  Backend geçmiş verilerle birleştirir
+         →  Rule-based filtre uygulanır
+         →  Gerekirse AI agent çalışır
+         →  Sonuç DB'ye yazılır
+         →  Kullanıcı app'i açtığında hazır görür
+
+KULLANICI ETKİLEŞİMİ:
+  • Pasif (sadece okur)
+  • İsterse "Bugün denedim" toggle'ı kullanır
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FAZ 6: MALİYET KONTROLÜ (Gün 24-25)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+BİLİNÇLİ SINIRLAMALAR:
+  • Günlük analiz: 1 kullanıcı başına
+  • Max input token: ~1500
+  • Max output token: ~300
+
+TAHMİNİ MALİYET:
+  1 kişi / ay    →  $0.5 - $1
+  100 kişi / ay  →  $20 - $60
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FAZ 7: FRONTEND UI (Gün 26-32)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PRENSİP:
+  ❌ Dashboard değil
+  ✅ Konuşan ekran
+
+4 EKRAN:
+
+  1. HOME
+     • En üstte AI yorumu
+     • 3 metrik: Süre, Uyanma, Deep+REM %
+     • "Bugün denedim" toggle
+
+  2. SLEEP DETAIL
+     • Basit grafik
+     • "Bu gece neden bölündü?" açıklaması
+
+  3. HISTORY / TIMELINE
+     • Gün gün: AI ne dedi, ne denendi, sonuç
+
+  4. SETTINGS
+     • Veri izinleri
+     • Günlük analiz açık/kapalı
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BAŞARI KRİTERLERİ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [ ] Kullanıcı "Bu beni gerçekten anlıyor" diyor
+  [ ] 1 hafta sonra "Fark ettim" tepkisi alınıyor
+  [ ] "Bunu geliştiririm" hissi oluşuyor
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MVP DIŞINDA KALANLAR (SONRASI İÇİN)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ❌ Medikal teşhis
+  ❌ Çoklu sensör
+  ❌ Sosyal özellikler
+  ❌ Premium plan
+
+  ✅ Daha iyi agent (sonra)
+  ✅ Haftalık özet (sonra)
+
+
+═══════════════════════════════════════════════════════════════════
