@@ -12,15 +12,23 @@ class SleepSession(Base):
     start_time = Column(DateTime) # Uyku başlangıcı
     end_time = Column(DateTime)   # Uyanış
     
-    # Özet Veriler (Dakika cinsinden tutalım)
+    # Özet Veriler (Dakika cinsinden - işlem için)
     total_sleep_duration = Column(Float, default=0.0) # Sadece uyunan (Deep+REM+Core)
     total_time_in_bed = Column(Float, default=0.0)    # Yatakta geçen toplam süre
     
-    # Evre Dağılımları (Dakika)
+    # Evre Dağılımları (Dakika - işlem için)
     deep_sleep_duration = Column(Float, default=0.0)
     rem_sleep_duration = Column(Float, default=0.0)
     core_sleep_duration = Column(Float, default=0.0)
     awake_duration = Column(Float, default=0.0)
+    
+    # Formatlanmış Süreler (Okuma için - "Xs Ydk")
+    total_sleep_formatted = Column(String, nullable=True)
+    total_in_bed_formatted = Column(String, nullable=True)
+    deep_formatted = Column(String, nullable=True)
+    rem_formatted = Column(String, nullable=True)
+    core_formatted = Column(String, nullable=True)
+    awake_formatted = Column(String, nullable=True)
     
     # Uyku Kalitesi / Skoru (İleride hesaplatırız)
     sleep_score = Column(Integer, nullable=True)

@@ -47,6 +47,16 @@ def calculate_duration_from_intervals(intervals):
         total_minutes += (e - s).total_seconds() / 60.0
     return total_minutes
 
+def format_duration(minutes):
+    """Dakikayı 'Xs Ydk' formatına çevirir. Örn: 356.3 -> '5s 56dk'"""
+    if minutes is None or minutes == 0:
+        return "0dk"
+    hours = int(minutes // 60)
+    mins = int(minutes % 60)
+    if hours > 0:
+        return f"{hours}s {mins}dk"
+    return f"{mins}dk"
+
 # --- REKÜRSİF VERİ BULUCU (İNATÇI DEDEKTİF) ---
 def find_valid_sleep_list(obj):
     """
@@ -165,23 +175,31 @@ async def receive_sleep_data(request: Request, db: Session = Depends(get_db)):
     if not segments_objects:
         return {"status": "warning", "message": "Liste dolu ama geçerli segment yok (Tarih formatı sorunu olabilir)"}
 
-    stats["in_bed"] = calculate_duration_from_intervals(category_intervals["InBed"])
-    stats["deep"] = calculate_duration_from_intervals(category_intervals["Deep"])
-    stats["rem"] = calculate_duration_from_intervals(category_intervals["REM"])
-    stats["core"] = calculate_duration_from_intervals(category_intervals["Core"])
-    stats["awake"] = calculate_duration_from_intervals(category_intervals["Awake"])
-    stats["total_sleep"] = stats["deep"] + stats["rem"] + stats["core"]
+    stats["in_bed"] = round(calculate_duration_from_intervals(category_intervals["InBed"]), 1)
+    stats["deep"] = round(calculate_duration_from_intervals(category_intervals["Deep"]), 1)
+    stats["rem"] = round(calculate_duration_from_intervals(category_intervals["REM"]), 1)
+    stats["core"] = round(calculate_duration_from_intervals(category_intervals["Core"]), 1)
+    stats["awake"] = round(calculate_duration_from_intervals(category_intervals["Awake"]), 1)
+    stats["total_sleep"] = round(stats["deep"] + stats["rem"] + stats["core"], 1)
 
     new_session = SleepSession(
         input_date=datetime.now(),
         start_time=min_start,
         end_time=max_end,
+        # Sayısal değerler (işlem için)
         total_sleep_duration=stats["total_sleep"],
         total_time_in_bed=stats["in_bed"],
         deep_sleep_duration=stats["deep"],
         rem_sleep_duration=stats["rem"],
         core_sleep_duration=stats["core"],
         awake_duration=stats["awake"],
+        # Formatlanmış değerler (okuma için)
+        total_sleep_formatted=format_duration(stats["total_sleep"]),
+        total_in_bed_formatted=format_duration(stats["in_bed"]),
+        deep_formatted=format_duration(stats["deep"]),
+        rem_formatted=format_duration(stats["rem"]),
+        core_formatted=format_duration(stats["core"]),
+        awake_formatted=format_duration(stats["awake"]),
         segments=segments_objects
     )
 
