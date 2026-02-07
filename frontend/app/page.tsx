@@ -44,6 +44,17 @@ export default function Home() {
         setData(json.data);
         setNav(json.navigation || { prev_id: null, next_id: null });
         setError(null);
+      } else if (json.status === 'empty') {
+        // Veri yoksa BOŞ DATA göster
+        setData({
+          stats: { total_sleep: 0, deep: 0, rem: 0, awake: 0, in_bed: 0 },
+          formatted: {
+            total: "0s 0dk", deep: "0s 0dk", rem: "0s 0dk", awake: "0s 0dk",
+            date: new Date().toLocaleDateString('tr-TR')
+          }
+        });
+        setNav({ prev_id: null, next_id: null });
+        setError(null); // Hata sayma, normal durum
       } else {
         setError(json.message || 'Veri bulunamadı.');
       }
@@ -66,6 +77,7 @@ export default function Home() {
     </div>
   );
 
+  // Sadece Gerçek Hatalar İçin (Sunucu Hatası vb.)
   if (error && !data) return (
     <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 text-center">
       <div className="text-4xl mb-4">⚠️</div>
@@ -74,9 +86,12 @@ export default function Home() {
     </div>
   );
 
+  // Veri yoksa Data null gelebilir, ama yukarıda 'empty' durumunda dummy data set ediyoruz.
+  // Yine de güvenlik önlemi:
   if (!data) return null;
 
   const score = Math.min(100, Math.max(0, Math.round((data.stats.total_sleep / 480) * 100)));
+  const isEmptySession = data.stats.total_sleep === 0; // Veri boş mu kontrolü
 
   return (
     <main className="min-h-screen bg-black text-white p-6 flex flex-col items-center max-w-md mx-auto relative">
@@ -99,7 +114,7 @@ export default function Home() {
           <button
             disabled={!nav.prev_id}
             onClick={() => nav.prev_id && fetchSleepData(`/sleep/${nav.prev_id}`)}
-            className={`text-lg ${nav.prev_id ? 'text-white hover:text-purple-400' : 'text-gray-700 cursor-not-allowed'}`}
+            className={`text-lg transition-colors ${nav.prev_id ? 'text-white hover:text-purple-400' : 'text-gray-700 cursor-not-allowed'}`}
           >
             ◀
           </button>
@@ -111,7 +126,7 @@ export default function Home() {
           <button
             disabled={!nav.next_id}
             onClick={() => nav.next_id && fetchSleepData(`/sleep/${nav.next_id}`)}
-            className={`text-lg ${nav.next_id ? 'text-white hover:text-purple-400' : 'text-gray-700 cursor-not-allowed'}`}
+            className={`text-lg transition-colors ${nav.next_id ? 'text-white hover:text-purple-400' : 'text-gray-700 cursor-not-allowed'}`}
           >
             ▶
           </button>
@@ -123,7 +138,7 @@ export default function Home() {
         <div className="absolute inset-0 rounded-full border-4 border-gray-900"></div>
         <div
           className="absolute inset-0 rounded-full border-4 border-purple-500 border-t-transparent transition-all duration-1000"
-          style={{ transform: `rotate(${score * 3.6}deg)` }}
+          style={{ transform: `rotate(${score * 3.6}deg)`, opacity: isEmptySession ? 0.3 : 1 }}
         ></div>
 
         <div className="text-center z-10">
@@ -135,7 +150,7 @@ export default function Home() {
       </div>
 
       {/* İstatistik Grid */}
-      <div className="grid grid-cols-2 gap-3 w-full mb-6">
+      <div className={`grid grid-cols-2 gap-3 w-full mb-6 ${isEmptySession ? 'opacity-50 grayscale' : ''}`}>
         <StatCard label="TOPLAM" value={data.formatted.total} color="text-white" border="border-gray-800" />
         <StatCard label="DERİN" value={data.formatted.deep} color="text-blue-200" border="border-blue-900/30" />
         <StatCard label="REM" value={data.formatted.rem} color="text-purple-200" border="border-purple-900/30" />
@@ -149,11 +164,13 @@ export default function Home() {
           <h2 className="font-bold text-gray-400 text-xs uppercase tracking-wide">Analiz</h2>
         </div>
         <p className="text-gray-300 text-sm leading-relaxed">
-          {score > 80
-            ? "Mükemmel performans! Vücudun tam şarj olmuş. Bugün zorlu görevler için ideal."
-            : score > 50
-              ? "Ortalama bir uyku. Biraz daha erken yatsan süper olurdu. Akşam ışıkları kıs."
-              : "Düşük performans. Bugün kafeini abartma ve akşam 22:00 gibi yatağa gitmeye çalış. 🌙"
+          {isEmptySession
+            ? "Henüz veri gelmedi usta. Bu gece güzel bir uyku çek, sabah analiz yapalım! 🌙💤"
+            : (score > 80
+              ? "Mükemmel performans! Vücudun tam şarj olmuş. Bugün zorlu görevler için ideal."
+              : score > 50
+                ? "Ortalama bir uyku. Biraz daha erken yatsan süper olurdu. Akşam ışıkları kıs."
+                : "Düşük performans. Bugün kafeini abartma ve akşam 22:00 gibi yatağa gitmeye çalış. 🌙")
           }
         </p>
       </div>
