@@ -1,12 +1,12 @@
 from fastapi import FastAPI, Request, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import text
 import uvicorn
 import json
 import dateparser
 from datetime import datetime
+import os
 
-# Bağımlılıkları içe aktar (Hem modül hem script olarak çalışmaya uygun)
+# Bağımlılıkları içe aktar
 try:
     from .database import engine, Base, get_db
     from .models import SleepSession, SleepSegment
@@ -16,49 +16,35 @@ except ImportError:
 
 app = FastAPI()
 
-# Tabloları oluştur (eğer yoksa garanti olsun)
+# Tabloları oluştur
 Base.metadata.create_all(bind=engine)
 
 def parse_date(date_val):
-    """Tarih verisini güvenli şekilde datetime objesine çevirir"""
     if not date_val: return None
     if isinstance(date_val, dict): date_val = date_val.get('start') or date_val.get('end')
-    
     if isinstance(date_val, str):
         return dateparser.parse(date_val)
     return None
 
 def clean_value(val):
-    """Değer verisini temizler"""
     if isinstance(val, dict): return val.get('value')
     return val
 
 def calculate_duration_from_intervals(intervals):
-    """
-    Çakışan zaman aralıklarını birleştirir ve toplam süreyi dk olarak hesaplar.
-    Örnek: (00:00-08:00) ve (01:00-07:00) -> Toplam 8 saat
-    """
     if not intervals: return 0.0
-    
-    # Başlangıç zamanına göre sırala
     intervals.sort(key=lambda x: x[0])
-    
     merged = []
     current_start, current_end = intervals[0]
-    
     for next_start, next_end in intervals[1:]:
-        if next_start <= current_end: # Çakışma var, süreyi uzat
+        if next_start <= current_end:
             current_end = max(current_end, next_end)
-        else: # Çakışma bitti, yeni blok ekle
+        else:
             merged.append((current_start, current_end))
             current_start, current_end = next_start, next_end
-    
     merged.append((current_start, current_end))
-    
     total_minutes = 0.0
     for s, e in merged:
         total_minutes += (e - s).total_seconds() / 60.0
-        
     return total_minutes
 
 @app.post("/upload-sleep")
@@ -66,44 +52,61 @@ async def receive_sleep_data(request: Request, db: Session = Depends(get_db)):
     try:
         payload = await request.json()
     except Exception as e:
-        return {"status": "error", "message": f"JSON Hatası: {str(e)}"}
+        return {"status": "error", "message": f"JSON Okuma Hatası: {str(e)}"}
 
-    # --- Veri Çıkarma ve Temizleme ---
+    # --- DEDEKTİF MODU: Veriyi Bulma ---
     raw_data = []
-    if isinstance(payload, dict):
-        if "uyku_verisi" in payload:
-            raw_data = payload["uyku_verisi"]
-        else:
-            raw_data = [payload]
-    elif isinstance(payload, list):
+
+    # 1. Gelen şey direkt bir Liste mi?
+    if isinstance(payload, list):
         raw_data = payload
     
-    if isinstance(raw_data, str):
+    # 2. Gelen şey bir Sözlük (Dict) mü?
+    elif isinstance(payload, dict):
+        # Önce bilinen anahtarlara bak
+        if "uyku_verisi" in payload: raw_data = payload["uyku_verisi"]
+        elif "data" in payload: raw_data = payload["data"]
+        elif "result" in payload: raw_data = payload["result"]
+        elif "body" in payload: raw_data = payload["body"] # Bazen body içine gömülür
+        
+        # Eğer hala boşsa ve sözlük tek bir kayıt gibi duruyorsa (start/val var)
+        elif "start" in payload and "value" in payload:
+            raw_data = [payload]
+            
+        # Eğer hala boşsa, sözlüğün değerlerinde herhangi bir liste ara
+        else:
+            for val in payload.values():
+                if isinstance(val, list) and len(val) > 0:
+                    raw_data = val
+                    print(f"🕵️ Veri, bilinmeyen bir anahtarın içinde bulundu!")
+                    break
+
+    # 3. Gelen şey String mi? (Bazen JSON string olarak gelir)
+    if isinstance(payload, str) or isinstance(raw_data, str):
+        target = raw_data if isinstance(raw_data, str) else payload
         try:
-            raw_data = json.loads(raw_data)
-        except: pass 
+            parsed = json.loads(target)
+            if isinstance(parsed, list): raw_data = parsed
+            elif isinstance(parsed, dict) and "uyku_verisi" in parsed: raw_data = parsed["uyku_verisi"]
+        except: pass
 
+    # --- KONTROL ---
     if not raw_data or not isinstance(raw_data, list):
-         return {"status": "error", "message": "Geçerli veri bulunamadı"}
+         received_type = type(payload).__name__
+         received_keys = list(payload.keys()) if isinstance(payload, dict) else "Yok"
+         msg = f"Geçerli veri bulunamadı. Gelen Tip: {received_type}, Anahtarlar: {received_keys}"
+         print(f"❌ {msg}")
+         return {"status": "error", "message": msg}
 
-    print(f"📥 {len(raw_data)} satır veri alındı, OTOMASYON işlemi başlıyor...")
+    print(f"📥 {len(raw_data)} satır veri yakalandı, hesaplanıyor...")
 
-    # --- Yedekleme (Opsiyonel ama güvenli) ---
-    try:
-        with open("son_gelen_veri.json", "w", encoding="utf-8") as f:
-            json.dump(raw_data, f, indent=4, ensure_ascii=False)
-    except: pass
-
-    # --- İstatistik Değişkenleri ---
+    # --- İŞLEME ve KAYIT (Aynı kodlar) ---
     stats = {
         "deep": 0.0, "rem": 0.0, "core": 0.0, "awake": 0.0, "in_bed": 0.0, "total_sleep": 0.0
     }
-    
-    # Aralık listeleri (Akıllı hesaplama için)
     category_intervals = {
         "Deep": [], "REM": [], "Core": [], "Awake": [], "InBed": [], "Asleep": []
     }
-
     segments_objects = []
     min_start = None
     max_end = None
@@ -113,50 +116,33 @@ async def receive_sleep_data(request: Request, db: Session = Depends(get_db)):
         e_time = parse_date(item.get('end'))
         val = clean_value(item.get('value'))
 
-        if not s_time or not e_time:
-            continue
+        if not s_time or not e_time: continue
 
-        # Global zaman sınırları
         if min_start is None or s_time < min_start: min_start = s_time
         if max_end is None or e_time > max_end: max_end = e_time
 
-        # Segment Oluştur
         duration_sec = (e_time - s_time).total_seconds()
-        
         seg = SleepSegment(
-            start_time=s_time,
-            end_time=e_time,
-            stage=val,
-            duration_seconds=duration_sec
+            start_time=s_time, end_time=e_time, stage=val, duration_seconds=duration_sec
         )
         segments_objects.append(seg)
 
-        # Aralıkları Sınıflandır
-        if val == "In Bed" or val == "InBed":
-            category_intervals["InBed"].append((s_time, e_time))
-        elif val == "Deep":
-            category_intervals["Deep"].append((s_time, e_time)) 
-        elif val == "REM":
-            category_intervals["REM"].append((s_time, e_time))
-        elif val == "Core":
-            category_intervals["Core"].append((s_time, e_time))
-        elif val == "Awake":
-            category_intervals["Awake"].append((s_time, e_time))
+        if val == "In Bed" or val == "InBed": category_intervals["InBed"].append((s_time, e_time))
+        elif val == "Deep": category_intervals["Deep"].append((s_time, e_time)) 
+        elif val == "REM": category_intervals["REM"].append((s_time, e_time))
+        elif val == "Core": category_intervals["Core"].append((s_time, e_time))
+        elif val == "Awake": category_intervals["Awake"].append((s_time, e_time))
 
     if not segments_objects:
-        return {"status": "warning", "message": "Hiçbir segment işlenemedi"}
+        return {"status": "warning", "message": "Liste dolu ama geçerli segment yok"}
 
-    # --- HESAPLAMA (Akıllı Birleştirme) ---
     stats["in_bed"] = calculate_duration_from_intervals(category_intervals["InBed"])
     stats["deep"] = calculate_duration_from_intervals(category_intervals["Deep"])
     stats["rem"] = calculate_duration_from_intervals(category_intervals["REM"])
     stats["core"] = calculate_duration_from_intervals(category_intervals["Core"])
     stats["awake"] = calculate_duration_from_intervals(category_intervals["Awake"])
-    
-    # Toplam Uyku = Deep + REM + Core
     stats["total_sleep"] = stats["deep"] + stats["rem"] + stats["core"]
 
-    # --- Veritabanı Kaydı ---
     new_session = SleepSession(
         input_date=datetime.now(),
         start_time=min_start,
@@ -167,7 +153,7 @@ async def receive_sleep_data(request: Request, db: Session = Depends(get_db)):
         rem_sleep_duration=stats["rem"],
         core_sleep_duration=stats["core"],
         awake_duration=stats["awake"],
-        segments=segments_objects # Detayları da ekle
+        segments=segments_objects
     )
 
     db.add(new_session)
@@ -175,9 +161,6 @@ async def receive_sleep_data(request: Request, db: Session = Depends(get_db)):
     db.refresh(new_session)
 
     print(f"✅ KAYDEDİLDİ! Oturum ID: {new_session.id}")
-    print(f"💤 Toplam: {int(stats['total_sleep'])} dk | 🛌 Yatakta: {int(stats['in_bed'])} dk")
-    print("--------------------------------------------------")
-
     return {
         "status": "success",
         "session_id": new_session.id,
@@ -185,5 +168,5 @@ async def receive_sleep_data(request: Request, db: Session = Depends(get_db)):
     }
 
 if __name__ == "__main__":
-    print("🚀 Tam Otomatik Uyku Sunucusu Hazır: http://0.0.0.0:8000")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", 8000)) # Railway PORT desteği
+    uvicorn.run(app, host="0.0.0.0", port=port)
