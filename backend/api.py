@@ -212,7 +212,12 @@ async def receive_sleep_data(request: Request, db: Session = Depends(get_db)):
     # --- AI AGENT ÇAĞRISI (SleepCoach) ---
     ai_advice = None
     try:
-        from agents.coach import SleepCoach
+        # Import Yolu Düzeltmesi (Railway vs Local)
+        try:
+            from agents.coach import SleepCoach
+        except ImportError:
+            from backend.agents.coach import SleepCoach
+            
         # Ajanı başlat (API Key çevreden okunur)
         coach = SleepCoach()
         

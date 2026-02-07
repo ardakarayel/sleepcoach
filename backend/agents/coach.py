@@ -41,16 +41,6 @@ Bu mesajı okuyan kişi sabah yeni uyanmış, telefonu eline almış ve "Bugün 
 """
 
     def generate_advice(self, stats):
-        """
-        stats formatı:
-        {
-            "total_sleep": 420.5, # dakika
-            "deep": 60.0,
-            "rem": 90.0,
-            "awake": 20.0,
-            ...
-        }
-        """
         if not self.client:
             return "AI Analizi için OPENAI_API_KEY gerekli."
 
@@ -67,12 +57,12 @@ Bu verilere bakarak koçluk yap.
 
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",  # Veya gpt-3.5-turbo, bütçeye göre
+                model="gpt-3.5-turbo",  # Daha stabil ve ucuz model
                 messages=[
                     {"role": "system", "content": self._get_system_prompt()},
                     {"role": "user", "content": user_content}
                 ],
-                max_tokens=100, # Kısa cevap istiyoruz
+                max_tokens=100,
                 temperature=0.7
             )
             return response.choices[0].message.content.strip()
