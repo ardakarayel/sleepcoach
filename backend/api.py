@@ -52,39 +52,53 @@ def find_valid_sleep_list(obj):
     """
     Verilen objenin içinde (ne kadar derinde olursa olsun)
     uyku verisi listesini bulmaya çalışır.
+    JSON Lines formatını da destekler (satır satır JSON).
     """
     # 1. Eğer bu bir listeyse ve içinde uyku verisi varsa (start/value)
     if isinstance(obj, list):
         if len(obj) > 0 and isinstance(obj[0], dict):
-            # Basit kontrol: içinde 'start' veya 'value' anahtarı var mı?
             if 'start' in obj[0] or 'value' in obj[0] or 'startDate' in obj[0]:
                 return obj
-        # Liste ama içi boş veya başka bir şey, belki listenin içinde başka bir yapı vardır?
         for item in obj:
             res = find_valid_sleep_list(item)
             if res: return res
     
     # 2. Eğer bu bir sözlükse, değerlerini tara
     elif isinstance(obj, dict):
-        # Öncelikli anahtarlar
         for key in ['uyku_verisi', 'data', 'result', 'body', 'value']:
             if key in obj:
                 res = find_valid_sleep_list(obj[key])
                 if res: return res
-        
-        # Diğer tüm değerler
         for val in obj.values():
             res = find_valid_sleep_list(val)
             if res: return res
 
-    # 3. Eğer bu bir string ise, JSON olarak açmayı dene
+    # 3. Eğer bu bir string ise
     elif isinstance(obj, str):
-        try:
-            if obj.strip().startswith('[') or obj.strip().startswith('{'):
-                parsed = json.loads(obj)
+        obj_stripped = obj.strip()
+        
+        # 3a. Normal JSON Array mı? [...]
+        if obj_stripped.startswith('['):
+            try:
+                parsed = json.loads(obj_stripped)
                 return find_valid_sleep_list(parsed)
-        except:
-            pass
+            except:
+                pass
+        
+        # 3b. JSON Lines formatı mı? (Her satır ayrı bir JSON objesi)
+        elif '\n' in obj_stripped or obj_stripped.startswith('{'):
+            lines = obj_stripped.split('\n')
+            parsed_list = []
+            for line in lines:
+                line = line.strip()
+                if line and line.startswith('{'):
+                    try:
+                        parsed_list.append(json.loads(line))
+                    except:
+                        pass
+            if parsed_list:
+                print(f"🔄 JSON Lines formatı algılandı, {len(parsed_list)} satır parse edildi.")
+                return parsed_list
             
     return None
 
