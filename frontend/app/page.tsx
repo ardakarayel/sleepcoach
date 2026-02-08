@@ -48,7 +48,13 @@ export default function Home() {
     setLoading(true);
     const API_URL = process.env.NEXT_PUBLIC_API_URL;
     try {
-      const res = await fetch(`${API_URL}${endpoint}`);
+      // Token varsa header'a ekle
+      const headers: HeadersInit = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch(`${API_URL}${endpoint}`, { headers });
       if (!res.ok) throw new Error('Sunucuya ulaşılamadı');
       const json = await res.json();
 
