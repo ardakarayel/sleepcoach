@@ -169,7 +169,7 @@ export default function Home() {
       </header>
 
       {/* Ana Skor Kartı */}
-      <div className="relative w-64 h-64 flex items-center justify-center mb-8 shrink-0">
+      <div className="relative w-64 h-64 flex items-center justify-center mb-8 shrink-0 z-10">
         <div className="absolute inset-0 rounded-full border-4 border-gray-900"></div>
         <div
           className="absolute inset-0 rounded-full border-4 border-purple-500 border-t-transparent transition-all duration-1000"
@@ -185,7 +185,7 @@ export default function Home() {
       </div>
 
       {/* İstatistik Grid */}
-      <div className={`grid grid-cols-2 gap-3 w-full mb-6 ${isEmptySession ? 'opacity-50 grayscale' : ''}`}>
+      <div className={`grid grid-cols-2 gap-3 w-full mb-6 relative z-10 ${isEmptySession ? 'opacity-50 grayscale' : ''}`}>
         <StatCard label="TOPLAM" value={data.formatted.total} color="text-white" border="border-gray-800" />
         <StatCard label="DERİN" value={data.formatted.deep} color="text-blue-200" border="border-blue-900/30" />
         <StatCard label="REM" value={data.formatted.rem} color="text-purple-200" border="border-purple-900/30" />
@@ -193,7 +193,7 @@ export default function Home() {
       </div>
 
       {/* AI Koç Mesajı */}
-      <div className="w-full bg-gradient-to-br from-gray-900 to-black rounded-2xl p-5 border border-gray-800 relative overflow-hidden">
+      <div className="w-full bg-gradient-to-br from-gray-900 to-black rounded-2xl p-5 border border-gray-800 relative z-10 overflow-hidden">
         <div className="flex items-center gap-2 mb-2">
           <span className="text-lg">🤖</span>
           <h2 className="font-bold text-gray-400 text-xs uppercase tracking-wide">Analiz</h2>
