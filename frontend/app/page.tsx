@@ -113,7 +113,7 @@ export default function Home() {
   const isEmptySession = data.stats.total_sleep === 0; // Veri boş mu kontrolü
 
   return (
-    <main className="min-h-screen text-white p-6 flex flex-col items-center max-w-md mx-auto relative">
+    <main className="min-h-screen text-white p-6 pt-12 flex flex-col items-center max-w-md mx-auto relative z-10" style={{ paddingTop: 'max(3rem, env(safe-area-inset-top))' }}>
       {/* Yıldızlı Gece Arka Planı */}
       <StarryBackground />
 
