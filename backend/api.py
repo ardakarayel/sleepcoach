@@ -220,25 +220,27 @@ async def receive_sleep_data(request: Request, db: Session = Depends(get_db)):
 
     print(f"✅ KAYDEDİLDİ! Oturum ID: {new_session.id}")
     
-    # --- AI AGENT ÇAĞRISI (SleepCoach) ---
+    # --- UYKU KONSEYİ (AI AGENTS) ---
     ai_advice = None
     try:
         # Import Yolu Düzeltmesi (Railway vs Local)
         try:
-            from agents.coach import SleepCoach
+            from agents.supervisor import Supervisor
         except ImportError:
-            from backend.agents.coach import SleepCoach
+            from backend.agents.supervisor import Supervisor
             
-        # Ajanı başlat (API Key çevreden okunur)
-        coach = SleepCoach()
+        # Konseyi başlat
+        council = Supervisor()
         
-        print("🤖 SleepCoach AI Analizi Başlatılıyor...")
-        ai_advice = coach.generate_advice(stats)
-        print(f"💡 AI Tavsiyesi: {ai_advice}")
+        print("🏛️ Uyku Konseyi toplanıyor...")
+        ai_advice = council.generate_council_report(stats)
+        print(f"📋 Konsey Raporu: {ai_advice}")
         
     except Exception as e:
-        print(f"⚠️ AI Analiz Hatası: {str(e)}")
-        ai_advice = "Koç şu an analiz yapamıyor, ama verilerin güvende."
+        print(f"⚠️ Konsey Hatası: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        ai_advice = "Konsey şu an toplanamadı, ama verilerin güvende."
 
     return {
         "status": "success",
