@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from './contexts/AuthContext';
+import StarryBackground from './components/StarryBackground';
 
 // Tip tanımları
 interface SleepData {
@@ -33,7 +34,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { user, token, isLoading: authLoading, getGreeting } = useAuth();
+  const { user, token, isLoading: authLoading, getGreeting, logout } = useAuth();
   const router = useRouter();
 
   // 🔐 Auth Kontrolü - Giriş yapmamışsa /auth'a yönlendir
@@ -112,7 +113,9 @@ export default function Home() {
   const isEmptySession = data.stats.total_sleep === 0; // Veri boş mu kontrolü
 
   return (
-    <main className="min-h-screen bg-black text-white p-6 flex flex-col items-center max-w-md mx-auto relative">
+    <main className="min-h-screen text-white p-6 flex flex-col items-center max-w-md mx-auto relative">
+      {/* Yıldızlı Gece Arka Planı */}
+      <StarryBackground />
 
       {/* Loading Overlay (Geçişlerde) */}
       {loading && (
@@ -123,9 +126,23 @@ export default function Home() {
 
       {/* Üst Bar ve Navigasyon */}
       <header className="w-full flex justify-between items-center mb-6">
-        <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">
-          SleepCoach
-        </h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">
+            SleepCoach
+          </h1>
+          {/* Çıkış Butonu */}
+          <button
+            onClick={() => { logout(); router.push('/auth'); }}
+            className="text-gray-500 hover:text-red-400 transition-colors p-1"
+            title="Çıkış Yap"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </button>
+        </div>
 
         {/* Tarih ve Oklar */}
         <div className="flex items-center gap-3 bg-gray-900/80 px-3 py-1.5 rounded-full border border-gray-800">
