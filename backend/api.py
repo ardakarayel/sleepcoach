@@ -32,8 +32,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Tabloları oluştur
+# Tabloları oluştur (startup'ta da çalışacak)
+print("🔧 Veritabanı tabloları kontrol ediliyor...")
 Base.metadata.create_all(bind=engine)
+print("✅ Tablolar hazır!")
+
+@app.on_event("startup")
+async def startup_event():
+    """Uygulama başladığında tabloları oluştur."""
+    print("🚀 Uygulama başlatılıyor...")
+    Base.metadata.create_all(bind=engine)
+    print("✅ Veritabanı tabloları oluşturuldu/kontrol edildi.")
 
 
 # ============================================

@@ -8,11 +8,8 @@ import os
 from datetime import datetime, timedelta
 from typing import Optional
 
-from passlib.context import CryptContext
+import bcrypt
 from jose import JWTError, jwt
-
-# Şifre hash'leme konfigürasyonu (bcrypt kullanıyoruz)
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # JWT Konfigürasyonu
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "sleepcoach-super-secret-key-change-in-production")
@@ -21,17 +18,22 @@ ACCESS_TOKEN_EXPIRE_DAYS = 7  # Token 7 gün geçerli
 
 
 # ============================================
-# 🔒 ŞİFRE İŞLEMLERİ
+# 🔒 ŞİFRE İŞLEMLERİ (Doğrudan bcrypt)
 # ============================================
 
 def hash_password(password: str) -> str:
     """Şifreyi hash'ler (bcrypt)."""
-    return pwd_context.hash(password)
+    password_bytes = password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password_bytes, salt)
+    return hashed.decode('utf-8')
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Girilen şifre ile hash'lenmiş şifreyi karşılaştırır."""
-    return pwd_context.verify(plain_password, hashed_password)
+    password_bytes = plain_password.encode('utf-8')
+    hashed_bytes = hashed_password.encode('utf-8')
+    return bcrypt.checkpw(password_bytes, hashed_bytes)
 
 
 # ============================================
