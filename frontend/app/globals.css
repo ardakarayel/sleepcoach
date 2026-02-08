@@ -1,12 +1,186 @@
 @import "tailwindcss";
 
+/* ============================================
+   🌙 SLEEPCOACH - GECE GÖKYÜZÜ TEMASI
+   ============================================ */
+
 :root {
-  --background: #000000;
-  --foreground: #ffffff;
+  /* Gece Renkleri */
+  --night-start: #0a0a1a;
+  --night-end: #1a1a3a;
+  --purple-accent: #8b5cf6;
+  --purple-glow: #a78bfa;
+  --moon-gold: #fbbf24;
+  --star-white: #ffffff;
+
+  /* Metin Renkleri */
+  --text-primary: #ffffff;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+
+  /* Cam Efekti */
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: 'Inter', sans-serif;
+  color: var(--text-primary);
+  background: linear-gradient(135deg, var(--night-start) 0%, var(--night-end) 100%);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  min-height: 100vh;
+}
+
+/* ============================================
+   🌟 YILDIZ ANİMASYONU
+   ============================================ */
+
+@keyframes twinkle {
+
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+  }
+
+  50% {
+    box-shadow: 0 0 40px rgba(139, 92, 246, 0.6);
+  }
+}
+
+@keyframes moon-glow {
+
+  0%,
+  100% {
+    filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.4));
+  }
+
+  50% {
+    filter: drop-shadow(0 0 40px rgba(251, 191, 36, 0.7));
+  }
+}
+
+/* ============================================
+   🎨 GLASSMORPHISM KARTLARI
+   ============================================ */
+
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+}
+
+.glass-input {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.glass-input:focus {
+  outline: none;
+  border-color: var(--purple-accent);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+  transform: scale(1.02);
+}
+
+.glass-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* ============================================
+   🔘 BUTONLAR
+   ============================================ */
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--purple-accent) 0%, #7c3aed 100%);
+  color: white;
+  font-weight: 600;
+  padding: 14px 28px;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 10px 40px rgba(139, 92, 246, 0.4);
+}
+
+.btn-primary:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--purple-accent);
+  font-weight: 500;
+  padding: 12px 24px;
+  border-radius: 12px;
+  border: 1px solid var(--purple-accent);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+  background: rgba(139, 92, 246, 0.1);
+}
+
+/* ============================================
+   🌙 AY İKONU
+   ============================================ */
+
+.moon {
+  animation: moon-glow 3s ease-in-out infinite;
+}
+
+.star {
+  animation: twinkle 2s ease-in-out infinite;
+}
+
+/* ============================================
+   📱 MOBİL UYUMLULUK
+   ============================================ */
+
+@media (max-width: 640px) {
+  .glass-card {
+    border-radius: 20px;
+    margin: 0 16px;
+  }
+
+  .btn-primary {
+    width: 100%;
+    padding: 16px;
+  }
 }

@@ -149,4 +149,77 @@ Bu liste, MVP sonrası projeyi bir girişime (Start-up) dönüştürmek için sa
 
 ---
 
-**Son Güncelleme:** 8 Şubat 2026
+## Faz 10: Frontend Login UI - 🚧 PLANLAMASI TAMAMLANDI
+
+> *"Gece Gökyüzü" temalı premium giriş deneyimi*
+
+### 🎨 Tasarım Konsepti
+- **Tema:** Koyu mavi → mor gradyan arka plan
+- **Gece Animasyonu:** Yıldızlar titreşiyor, ay fazları değişiyor
+- **Glassmorphism:** Buzlu cam efekti form kartlarında
+- **Micro-interactions:** Butonlarda, inputlarda yumuşak hover efektleri
+
+### 📱 Sayfa Akışı (3 Kaydırmalı Ekran)
+| Sayfa | İçerik | Animasyon |
+|-------|--------|-----------|
+| 1. Hoş Geldin | Ay + "SleepCoach" logosu + slogan | Ay yavaşça dolunay oluyor |
+| 2. Giriş Yap | Email + Şifre formu + "Kayıt ol" linki | Sağdan sola kayarak giriyor |
+| 3. Kayıt Ol | Email + Username + Şifre formu | Sağdan sola kayarak giriyor |
+
+### 🎭 Animasyonlar (Framer Motion)
+| Animasyon | Nerede | Detay |
+|-----------|--------|-------|
+| Yıldız Titreşimi | Arka plan | Rastgele pozisyonlarda yıldızlar parlaması |
+| Ay Fazları | Hoş geldin ekranı | Hilal → Dolunay geçişi (3 saniye) |
+| Sayfa Geçişi | Login ↔ Register | Sağdan sola kayma + fade |
+| Form Girişi | Input focus | Hafif scale + glow efekti |
+| Buton Hover | Tüm butonlar | Gradient renk kayması + scale |
+
+### 🌈 Renk Paleti
+| Renk | Kullanım | Kod |
+|------|----------|-----|
+| Gece Mavisi | Arka plan | `#0a0a1a` → `#1a1a3a` |
+| Mor Vurgu | Butonlar, linkler | `#8b5cf6` |
+| Ay Altın | Ay, vurgu noktaları | `#fbbf24` |
+| Beyaz/Gri | Metinler | `#ffffff`, `#9ca3af` |
+| Cam Efekti | Form kartları | `rgba(255,255,255,0.05)` + blur |
+
+### ⏰ Dinamik Selamlama (Saat Bazlı)
+| Saat Aralığı | Mesaj |
+|--------------|-------|
+| 05:00 - 12:00 | "Günaydın, {username}! ☀️" |
+| 12:00 - 18:00 | "İyi günler, {username}! 🌤️" |
+| 18:00 - 22:00 | "İyi akşamlar, {username}! 🌅" |
+| 22:00 - 05:00 | "İyi geceler, {username}! 🌙" |
+
+### 🔐 Oturum Yönetimi
+- **Token Saklama:** localStorage (7 gün geçerli token)
+- **Otomatik Giriş:** Sayfa açılınca token var mı kontrol, varsa direkt dashboard'a
+- **Çıkış:** Settings sayfasında "Çıkış Yap" butonu
+
+### 🛠️ Teknik Stack
+- Next.js 14 (mevcut)
+- Framer Motion (sayfa geçişleri, animasyonlar)
+- Tailwind CSS (glassmorphism, gradyanlar)
+- localStorage (token saklama)
+
+### 📋 Yapılacaklar Listesi
+- [ ] Framer Motion kur
+- [ ] Layout + Gece teması arka plan
+- [ ] Hoş Geldin sayfası (Ay animasyonu)
+- [ ] Login sayfası (Glassmorphism form)
+- [ ] Register sayfası
+- [ ] Sayfa geçiş animasyonları
+- [ ] Token saklama + Otomatik giriş
+- [ ] Dinamik selamlama (saat bazlı)
+- [ ] Yıldız animasyonu (arka plan)
+
+### 🌟 Bonus Fikirler (İleri Tarih)
+- [ ] Uyku Skoru ile Arka Plan (Skor düşük → bulutlu, Skor yüksek → yıldızlı)
+- [ ] Ses Efektleri (Login başarılı olunca yumuşak "ding")
+- [ ] Haptic Feedback (Mobilde titreşim - PWA)
+
+---
+
+**Son Güncelleme:** 8 Şubat 2026 (21:03)
+
