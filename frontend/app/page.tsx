@@ -125,7 +125,7 @@ export default function Home() {
       )}
 
       {/* Üst Bar ve Navigasyon */}
-      <header className="w-full flex justify-between items-center mb-6">
+      <header className="w-full flex justify-between items-center mb-6 sticky top-0 pt-4 pb-2 z-20 bg-gradient-to-b from-[#0a0a1a] via-[#0a0a1a]/80 to-transparent">
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">
             SleepCoach
