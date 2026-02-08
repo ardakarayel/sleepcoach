@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from './contexts/AuthContext';
 
 // Tip tanımları
 interface SleepData {
@@ -30,6 +32,16 @@ export default function Home() {
   const [nav, setNav] = useState<Navigation>({ prev_id: null, next_id: null });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const { user, token, isLoading: authLoading, getGreeting } = useAuth();
+  const router = useRouter();
+
+  // 🔐 Auth Kontrolü - Giriş yapmamışsa /auth'a yönlendir
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/auth');
+    }
+  }, [authLoading, user, router]);
 
   // Veri Çekme Fonksiyonu
   async function fetchSleepData(endpoint: string) {
