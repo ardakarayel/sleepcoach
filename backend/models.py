@@ -1,11 +1,45 @@
 from sqlalchemy import Column, Integer, String, DateTime, Float, ForeignKey
 from sqlalchemy.orm import relationship
-from .database import Base
+from datetime import datetime
 
+try:
+    from .database import Base
+except ImportError:
+    from database import Base
+
+
+# ============================================
+# 👤 USER MODELİ (Kimlik Doğrulama)
+# ============================================
+class User(Base):
+    """
+    Kullanıcı hesabı.
+    Email ve username benzersiz (unique) olmalı.
+    """
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True, nullable=False)
+    username = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # İlişki: Bu kullanıcının uyku oturumları
+    sleep_sessions = relationship("SleepSession", back_populates="user", cascade="all, delete-orphan")
+
+
+# ============================================
+# 😴 UYKU OTURUMU MODELİ
+# ============================================
 class SleepSession(Base):
     __tablename__ = "sleep_sessions"
 
     id = Column(Integer, primary_key=True, index=True)
+    
+    # 👤 Kullanıcı İlişkisi (Hangi kullanıcının uyku verisi?)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Şimdilik nullable, migration sonrası zorunlu yapılabilir
+    user = relationship("User", back_populates="sleep_sessions")
+    
     input_date = Column(DateTime, index=True)  # Verinin sisteme girdiği tarih
     
     # Oturumun genel sınırları
@@ -36,6 +70,10 @@ class SleepSession(Base):
     # İlişki: Bu gecenin detay parçaları
     segments = relationship("SleepSegment", back_populates="session", cascade="all, delete-orphan")
 
+
+# ============================================
+# 📊 UYKU SEGMENT MODELİ (Detay Parçalar)
+# ============================================
 class SleepSegment(Base):
     """
     Ham parça veriler.
@@ -52,3 +90,4 @@ class SleepSegment(Base):
     duration_seconds = Column(Float)
     
     session = relationship("SleepSession", back_populates="segments")
+

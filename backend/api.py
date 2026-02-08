@@ -1,18 +1,23 @@
-from fastapi import FastAPI, Request, Depends, HTTPException
+from fastapi import FastAPI, Request, Depends, HTTPException, Header
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
+from pydantic import BaseModel, EmailStr
 import uvicorn
 import json
 import dateparser
 from datetime import datetime
+from typing import Optional
 import os
 
 # Bağımlılıkları içe aktar
 try:
     from .database import engine, Base, get_db
-    from .models import SleepSession, SleepSegment
+    from .models import SleepSession, SleepSegment, User
+    from .auth import hash_password, verify_password, create_access_token, get_user_id_from_token
 except ImportError:
     from database import engine, Base, get_db
-    from models import SleepSession, SleepSegment
+    from models import SleepSession, SleepSegment, User
+    from auth import hash_password, verify_password, create_access_token, get_user_id_from_token
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -29,6 +34,162 @@ app.add_middleware(
 
 # Tabloları oluştur
 Base.metadata.create_all(bind=engine)
+
+
+# ============================================
+# 📋 PYDANTIC ŞEMALARI (Request/Response)
+# ============================================
+
+class UserRegister(BaseModel):
+    """Kayıt isteği şeması"""
+    email: EmailStr
+    username: str
+    password: str
+
+class UserLogin(BaseModel):
+    """Giriş isteği şeması"""
+    email: EmailStr
+    password: str
+
+class UserResponse(BaseModel):
+    """Kullanıcı bilgisi yanıtı"""
+    id: int
+    email: str
+    username: str
+
+class TokenResponse(BaseModel):
+    """Token yanıtı"""
+    access_token: str
+    token_type: str = "bearer"
+    user: UserResponse
+
+
+# ============================================
+# 🔐 AUTH HELPER FONKSİYONLARI
+# ============================================
+
+security = HTTPBearer(auto_error=False)
+
+def get_current_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    db: Session = Depends(get_db)
+) -> Optional[User]:
+    """Token'dan mevcut kullanıcıyı döner. Token yoksa None döner."""
+    if not credentials:
+        return None
+    
+    token = credentials.credentials
+    user_id = get_user_id_from_token(token)
+    
+    if not user_id:
+        return None
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    return user
+
+
+def require_auth(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
+) -> User:
+    """Zorunlu auth - Token geçersizse 401 hatası verir."""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Token gerekli")
+    
+    token = credentials.credentials
+    user_id = get_user_id_from_token(token)
+    
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Geçersiz veya süresi dolmuş token")
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı")
+    
+    return user
+
+
+# ============================================
+# 🔑 AUTH ENDPOINTLERİ
+# ============================================
+
+@app.post("/register", response_model=TokenResponse)
+def register(user_data: UserRegister, db: Session = Depends(get_db)):
+    """
+    Yeni kullanıcı kaydı.
+    Email ve username benzersiz olmalı.
+    Başarılı kayıt sonrası otomatik giriş yapılır (token döner).
+    """
+    # Email kontrolü
+    if db.query(User).filter(User.email == user_data.email).first():
+        raise HTTPException(status_code=400, detail="Bu email zaten kullanılıyor")
+    
+    # Username kontrolü
+    if db.query(User).filter(User.username == user_data.username).first():
+        raise HTTPException(status_code=400, detail="Bu kullanıcı adı zaten kullanılıyor")
+    
+    # Şifre uzunluk kontrolü
+    if len(user_data.password) < 6:
+        raise HTTPException(status_code=400, detail="Şifre en az 6 karakter olmalı")
+    
+    # Kullanıcı oluştur
+    new_user = User(
+        email=user_data.email,
+        username=user_data.username,
+        hashed_password=hash_password(user_data.password)
+    )
+    
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    
+    print(f"✅ Yeni kullanıcı kaydoldu: {new_user.username} ({new_user.email})")
+    
+    # Token oluştur
+    access_token = create_access_token(data={"user_id": new_user.id, "username": new_user.username})
+    
+    return TokenResponse(
+        access_token=access_token,
+        user=UserResponse(id=new_user.id, email=new_user.email, username=new_user.username)
+    )
+
+
+@app.post("/login", response_model=TokenResponse)
+def login(user_data: UserLogin, db: Session = Depends(get_db)):
+    """
+    Kullanıcı girişi.
+    Email + Şifre ile giriş yapar, başarılı olursa token döner.
+    """
+    # Kullanıcıyı bul
+    user = db.query(User).filter(User.email == user_data.email).first()
+    
+    if not user:
+        raise HTTPException(status_code=401, detail="Email veya şifre hatalı")
+    
+    # Şifre kontrolü
+    if not verify_password(user_data.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Email veya şifre hatalı")
+    
+    print(f"🔓 Kullanıcı giriş yaptı: {user.username}")
+    
+    # Token oluştur
+    access_token = create_access_token(data={"user_id": user.id, "username": user.username})
+    
+    return TokenResponse(
+        access_token=access_token,
+        user=UserResponse(id=user.id, email=user.email, username=user.username)
+    )
+
+
+@app.get("/me", response_model=UserResponse)
+def get_me(current_user: User = Depends(require_auth)):
+    """
+    Mevcut kullanıcı bilgilerini döner.
+    Token gerektirir.
+    """
+    return UserResponse(id=current_user.id, email=current_user.email, username=current_user.username)
+
+
 
 def parse_date(date_val):
     if not date_val: return None
@@ -124,7 +285,11 @@ def find_valid_sleep_list(obj):
     return None
 
 @app.post("/upload-sleep")
-async def receive_sleep_data(request: Request, db: Session = Depends(get_db)):
+async def receive_sleep_data(
+    request: Request, 
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user)
+):
     try:
         payload = await request.json()
     except Exception as e:
@@ -193,7 +358,17 @@ async def receive_sleep_data(request: Request, db: Session = Depends(get_db)):
     stats["awake"] = round(calculate_duration_from_intervals(category_intervals["Awake"]), 1)
     stats["total_sleep"] = round(stats["deep"] + stats["rem"] + stats["core"], 1)
 
+    # Kullanıcı ID'sini al (giriş yapmışsa)
+    user_id = current_user.id if current_user else None
+    username = current_user.username if current_user else None
+    
+    if user_id:
+        print(f"👤 Kullanıcı: {username} (ID: {user_id})")
+    else:
+        print("👤 Anonim kullanıcı (giriş yapılmamış)")
+    
     new_session = SleepSession(
+        user_id=user_id,  # Kullanıcıya bağla
         input_date=datetime.now(),
         start_time=min_start,
         end_time=max_end,
@@ -233,7 +408,7 @@ async def receive_sleep_data(request: Request, db: Session = Depends(get_db)):
         council = Supervisor()
         
         print("🏛️ Uyku Konseyi toplanıyor...")
-        ai_advice = council.generate_council_report(stats)
+        ai_advice = council.generate_council_report(stats, username=username)
         print(f"📋 Konsey Raporu: {ai_advice}")
         
     except Exception as e:
@@ -250,37 +425,61 @@ async def receive_sleep_data(request: Request, db: Session = Depends(get_db)):
     }
 
 @app.get("/latest-sleep")
-def get_latest_sleep(db: Session = Depends(get_db)):
+def get_latest_sleep(
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user)
+):
     """
     En son kaydedilen uyku oturumunu getirir.
-    Ek olarak 'Navigation' (önceki/sonraki) verisini de döner.
+    Giriş yapılmışsa sadece o kullanıcının verilerini getirir.
     """
-    latest_session = db.query(SleepSession).order_by(SleepSession.input_date.desc()).first()
+    # Kullanıcıya göre filtrele (giriş yapılmışsa)
+    query = db.query(SleepSession)
+    if current_user:
+        query = query.filter(SleepSession.user_id == current_user.id)
+    
+    latest_session = query.order_by(SleepSession.input_date.desc()).first()
     
     if not latest_session:
         return {"status": "empty", "message": "Henüz veri yok."}
     
-    # Navigation: Sadece önceki kayıt olabilir (Son zaten bu)
-    prev_session = db.query(SleepSession).filter(SleepSession.input_date < latest_session.input_date).order_by(SleepSession.input_date.desc()).first()
+    # Navigation: Kullanıcıya göre filtreli
+    prev_query = db.query(SleepSession).filter(SleepSession.input_date < latest_session.input_date)
+    if current_user:
+        prev_query = prev_query.filter(SleepSession.user_id == current_user.id)
+    prev_session = prev_query.order_by(SleepSession.input_date.desc()).first()
     
     return prepare_session_response(latest_session, prev_session=prev_session, next_session=None)
 
 @app.get("/sleep/{session_id}")
-def get_sleep_by_id(session_id: int, db: Session = Depends(get_db)):
+def get_sleep_by_id(
+    session_id: int, 
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user)
+):
     """
     Belirli bir ID'ye sahip uyku oturumunu getirir.
-    Sağa/Sola geçişler için kullanılır.
+    Giriş yapılmışsa sadece o kullanıcının verisini kontrol eder.
     """
     current_session = db.query(SleepSession).filter(SleepSession.id == session_id).first()
     
     if not current_session:
         return {"status": "error", "message": "Kayıt bulunamadı."}
-        
-    # Önceki Kayıt (Tarihi daha eski olan en yakın kayıt)
-    prev_session = db.query(SleepSession).filter(SleepSession.input_date < current_session.input_date).order_by(SleepSession.input_date.desc()).first()
     
-    # Sonraki Kayıt (Tarihi daha yeni olan en yakın kayıt)
-    next_session = db.query(SleepSession).filter(SleepSession.input_date > current_session.input_date).order_by(SleepSession.input_date.asc()).first()
+    # Kullanıcı kontrolü: Başkasının verisine erişim engelle
+    if current_user and current_session.user_id and current_session.user_id != current_user.id:
+        return {"status": "error", "message": "Bu kayda erişim izniniz yok."}
+        
+    # Önceki/Sonraki kayıtlar (kullanıcıya göre filtreli)
+    prev_query = db.query(SleepSession).filter(SleepSession.input_date < current_session.input_date)
+    next_query = db.query(SleepSession).filter(SleepSession.input_date > current_session.input_date)
+    
+    if current_user:
+        prev_query = prev_query.filter(SleepSession.user_id == current_user.id)
+        next_query = next_query.filter(SleepSession.user_id == current_user.id)
+    
+    prev_session = prev_query.order_by(SleepSession.input_date.desc()).first()
+    next_session = next_query.order_by(SleepSession.input_date.asc()).first()
     
     return prepare_session_response(current_session, prev_session, next_session)
 

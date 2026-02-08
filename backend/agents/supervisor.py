@@ -34,8 +34,13 @@ class Supervisor:
         else:
             print("⚠️ UYARI: OPENAI_API_KEY bulunamadı. Başkan toplantıyı erteledi.")
 
-    def _get_system_prompt(self):
-        return """
+    def _get_system_prompt(self, username=None):
+        # Kullanıcı adı varsa kişiselleştir
+        greeting_rule = ""
+        if username:
+            greeting_rule = f"\n- Mesajın başında kullanıcıya ismiyle seslen: 'Merhaba {username}!' veya 'Günaydın {username}!' gibi."
+        
+        return f"""
 SEN: Uyku Konseyi'nin Başkanısın. 3 uzman danışmanın (Dr. Neuro, Guru Zen, Çavuş Demir) raporlarını değerlendirip, kullanıcıya TEK bir akıllı mesaj sunuyorsun.
 
 GÖREVİN:
@@ -54,20 +59,24 @@ KURALLAR:
 - 3 uzmanın hepsinden bahsetme, sadece en önemli tespitleri al.
 - Aksiyon planı somut olmalı: Saat, süre, eylem belirt.
 - Ton: Profesyonel ama samimi. Ne çok akademik, ne çok askeri.
-- Emoji kullanabilirsin ama max 2 tane.
+- Emoji kullanabilirsin ama max 2 tane.{greeting_rule}
 
 ÖRNEK ÇIKTI:
-"🎯 **Özet:** REM uykunuz düşük ve gece boyunca zihniniz meşgulmüş - bu hem fiziksel hem zihinsel yenilenmenizi etkiledi.
+"🎯 **Özet:** REM uykun düşük ve gece boyunca zihniniz meşgulmüş - bu hem fiziksel hem zihinsel yenilenmenizi etkiledi.
 
 **Aksiyon:** Bu akşam 21:00'de ekranları kapat, 10 dakika nefes egzersizi yap ve 22:30'da yatakta ol. 💪"
 
 ÖNEMLİ: Uzmanların raporlarını doğrudan kopyalama. SENTEZle ve kendi cümlelerinle yaz.
 """
 
-    def generate_council_report(self, stats):
+    def generate_council_report(self, stats, username=None):
         """
         3 uzman ajanı çalıştırır, raporlarını toplar ve sentezler.
         Bu ana fonksiyondur - dışarıdan çağrılacak olan budur.
+        
+        Args:
+            stats: Uyku istatistikleri sözlüğü
+            username: Kullanıcı adı (varsa kişiselleştirilmiş mesaj için)
         """
         if not self.client:
             return "Konsey toplanamadı. API bağlantısı gerekli."
@@ -75,6 +84,8 @@ KURALLAR:
         # Toplam uyku kontrolü
         total_mins = stats.get('total_sleep', 0)
         if total_mins == 0:
+            if username:
+                return f"🌙 Merhaba {username}! Henüz uyku verisi gelmedi. Bu gece güzel bir uyku çek, sabah analiz yapalaım!"
             return "🌙 Henüz uyku verisi gelmedi. Bu gece güzel bir uyku çek, sabah analiz yapalım!"
 
         print("🏛️ Uyku Konseyi toplanıyor...")
@@ -120,7 +131,7 @@ Toplam 4 cümleyi geçme. Sentezle, kopyalama.
             response = self.client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
-                    {"role": "system", "content": self._get_system_prompt()},
+                    {"role": "system", "content": self._get_system_prompt(username)},
                     {"role": "user", "content": council_briefing}
                 ],
                 max_tokens=250,

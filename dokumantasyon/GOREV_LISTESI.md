@@ -113,4 +113,40 @@ Bu liste, MVP sonrası projeyi bir girişime (Start-up) dönüştürmek için sa
 - [ ] **Kişiselleştirilmiş Koçluk:** 
   - Sporcu profili -> "Protein al, kas onarımı eksik."
   - Beyaz yakalı profili -> "Geç saatte mail bakma, REM düşüyor."
-- [ ] **Auth Sistemi:** Google/Apple ile giriş yapıp verileri bulutta kişiye özel saklama.
+
+---
+
+## Faz 8: Kullanıcı Kimlik Doğrulama (Authentication) - 🚧 AKTİF
+
+> *Kullanıcı hesabı sistemi - Sign In / Sign Up*
+
+### 📋 Şimdi Yapılacaklar (Öncelikli)
+- [ ] **Backend:** User modeli oluştur (email, username, password)
+- [ ] **Backend:** /register endpoint'i (Kayıt)
+- [ ] **Backend:** /login endpoint'i (Giriş) - JWT Token döner
+- [ ] **Backend:** sleep_sessions tablosuna user_id kolonu ekle
+- [ ] **Frontend:** Login sayfası (/login)
+- [ ] **Frontend:** Register sayfası (/register)
+- [ ] **Frontend:** Koruma: Giriş yapmadan ana sayfaya erişim engellenir
+- [ ] **AI Ajanlar:** Username ile kişiselleştirilmiş selamlama
+
+### 📝 İleri Tarihte Yapılacaklar (Backlog)
+- [ ] **Email Doğrulama:** Kayıt sonrası "Email'ini doğrula" linki gönder
+- [ ] **Beni Hatırla:** Uzun süreli token seçeneği (30 gün)
+- [ ] **Şifremi Unuttum:** Email'e şifre sıfırlama linki gönder
+- [ ] **Google/Apple ile Giriş:** OAuth entegrasyonu
+
+---
+
+## Faz 9: Uyku Konseyi (AI Multi-Agent) - ✅ TAMAMLANDI
+
+> *3 uzman ajan + Supervisor sistemi*
+
+- [x] **Dr. Neuro:** Biyolojik/bilimsel analiz ajanı
+- [x] **Guru Zen:** Zihinsel sağlık ve rahatlama koçu
+- [x] **Çavuş Demir:** Disiplin subayı ve motivasyon koçu
+- [x] **Supervisor (Başkan):** 3 raporun sentezi + aksiyon planı
+
+---
+
+**Son Güncelleme:** 8 Şubat 2026
