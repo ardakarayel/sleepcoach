@@ -39,10 +39,30 @@ print("✅ Tablolar hazır!")
 
 @app.on_event("startup")
 async def startup_event():
-    """Uygulama başladığında tabloları oluştur."""
+    """Uygulama başladığında tabloları oluştur ve migration yap."""
     print("🚀 Uygulama başlatılıyor...")
     Base.metadata.create_all(bind=engine)
-    print("✅ Veritabanı tabloları oluşturuldu/kontrol edildi.")
+    
+    # user_id kolonu yoksa ekle (migration)
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        try:
+            # Kolon var mı kontrol et
+            result = conn.execute(text("""
+                SELECT column_name FROM information_schema.columns 
+                WHERE table_name='sleep_sessions' AND column_name='user_id'
+            """))
+            if not result.fetchone():
+                print("🔧 user_id kolonu ekleniyor...")
+                conn.execute(text("ALTER TABLE sleep_sessions ADD COLUMN user_id INTEGER REFERENCES users(id)"))
+                conn.commit()
+                print("✅ user_id kolonu eklendi!")
+            else:
+                print("✅ user_id kolonu zaten mevcut.")
+        except Exception as e:
+            print(f"⚠️ Migration hatası (muhtemelen zaten var): {e}")
+    
+    print("✅ Veritabanı hazır!")
 
 
 # ============================================
