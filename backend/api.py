@@ -317,8 +317,24 @@ def find_valid_sleep_list(obj):
 async def receive_sleep_data(
     request: Request, 
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_current_user),
+    x_api_key: Optional[str] = Header(None)
 ):
+    # --- API KEY AUTHENTICATION (Kestirmeler İçin) ---
+    # Eğer normal login yoksa ama API Key doğruysa, ilk kullanıcıyı (Admin) bul.
+    if not current_user and x_api_key:
+        required_key = os.getenv("SHORTCUT_API_KEY", "sleepcoach-secret-key")
+        if x_api_key == required_key:
+            # API Key doğru! Veriyi ilk kullanıcıya (ID=1) yazalım.
+            # Gerçek projede bu key kullanıcıya özel olabilir.
+            current_user = db.query(User).order_by(User.id).first()
+            if current_user:
+                print(f"🔑 API Key ile giriş kabul edildi: {current_user.username}")
+            else:
+                print("⚠️ API Key doğru ama veritabanında hiç kullanıcı yok!")
+        else:
+            print(f"❌ Hatalı API Key denemesi: {x_api_key}")
+
     try:
         payload = await request.json()
     except Exception as e:

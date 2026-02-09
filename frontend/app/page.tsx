@@ -125,7 +125,7 @@ export default function Home() {
       )}
 
       {/* Üst Bar ve Navigasyon */}
-      <header className="w-full flex justify-between items-center mb-6 sticky top-0 pt-4 pb-2 z-20 bg-gradient-to-b from-[#0a0a1a] via-[#0a0a1a]/80 to-transparent">
+      <header className="w-full flex justify-between items-center mb-6 sticky top-0 pt-4 pb-2 z-20">
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">
             SleepCoach
@@ -144,8 +144,8 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Tarih ve Oklar */}
-        <div className="flex items-center gap-3 bg-gray-900/80 px-3 py-1.5 rounded-full border border-gray-800">
+        {/* Tarih ve Oklar - Şeffaf Görünüm */}
+        <div className="flex items-center gap-3 text-white">
           <button
             disabled={!nav.prev_id}
             onClick={() => nav.prev_id && fetchSleepData(`/sleep/${nav.prev_id}`)}
