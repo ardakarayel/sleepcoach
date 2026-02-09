@@ -12,11 +12,11 @@ import os
 # Bağımlılıkları içe aktar
 try:
     from .database import engine, Base, get_db
-    from .models import SleepSession, SleepSegment, User
+    from .models import SleepSession, SleepSegment, User, ChatMessage
     from .auth import hash_password, verify_password, create_access_token, get_user_id_from_token
 except ImportError:
     from database import engine, Base, get_db
-    from models import SleepSession, SleepSegment, User
+    from models import SleepSession, SleepSegment, User, ChatMessage
     from auth import hash_password, verify_password, create_access_token, get_user_id_from_token
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -485,21 +485,7 @@ class ChatRequest(BaseModel):
     message: str
     history: list = [] # [{"role": "user", "content": "..."}, ...]
 
-# --- Chat Message Model ---
-class ChatMessage(Base):
-    __tablename__ = "chat_messages"
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    role = Column(String)  # 'user' veya 'assistant'
-    content = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    user = relationship("User", back_populates="messages")
-
-User.messages = relationship("ChatMessage", back_populates="user")
-
-# Tabloları oluştur (yeni tablo eklendiği için)
-Base.metadata.create_all(bind=engine)
+# ChatMessage modeli models.py'den import ediliyor (satır 15'te)
 
 @app.get("/chat/history")
 def get_chat_history(authorization: str = Header(None), db: Session = Depends(get_db)):
