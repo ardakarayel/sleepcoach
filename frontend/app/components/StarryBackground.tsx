@@ -1,11 +1,9 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+// ... imports
+import { usePathname } from 'next/navigation';
 
-// ============================================
-// 🌟 YILDIZLI ARKA PLAN KOMPONENTİ
-// ============================================
+// ... interfaces
 
 interface Star {
     id: number;
@@ -33,9 +31,12 @@ interface Cloud {
 }
 
 export default function StarryBackground() {
+    const pathname = usePathname();
+    const isHomePage = pathname === '/';
     const [stars, setStars] = useState<Star[]>([]);
     const [meteors, setMeteors] = useState<Meteor[]>([]);
     const [clouds, setClouds] = useState<Cloud[]>([]);
+    // ... rest of the component logic (useEffect and return)
 
     useEffect(() => {
         // Rastgele yıldızlar oluştur
@@ -164,34 +165,38 @@ export default function StarryBackground() {
             ))}
 
             {/* Ay (Moon) - Gökyüzünde Yavaş Hareket */}
-            <motion.div
-                className="absolute w-24 h-24 z-0"
-                style={{
-                    top: '10%',
-                    right: '10%',
-                }}
-                animate={{
-                    x: [0, -50, -100, 0], // Hafif sağa sola salınım veya yörünge hareketi
-                    y: [0, 10, 0, -10],
-                }}
-                transition={{
-                    duration: 60, // Çok yavaş hareket (1 dakika)
-                    repeat: Infinity,
-                    ease: "linear",
-                }}
-            >
+            {/* Ay (Moon) - Gökyüzünde Yavaş Hareket (Sadece Ana Sayfada) */}
+            {isHomePage && (
                 <motion.div
-                    className="w-full h-full rounded-full bg-yellow-100/10 blur-xl opacity-40 absolute inset-0"
-                    animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }}
-                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                />
-                <div className="w-16 h-16 bg-yellow-100 rounded-full shadow-[0_0_50px_rgba(253,224,71,0.5)] opacity-90 relative top-4 left-4">
-                    {/* Kraterler */}
-                    <div className="absolute top-3 left-4 w-3 h-3 bg-yellow-200/50 rounded-full opacity-50"></div>
-                    <div className="absolute bottom-4 right-5 w-2 h-2 bg-yellow-200/50 rounded-full opacity-50"></div>
-                    <div className="absolute top-8 right-3 w-1.5 h-1.5 bg-yellow-200/50 rounded-full opacity-50"></div>
-                </div>
-            </motion.div>
+                    className="absolute w-24 h-24 z-0"
+                    style={{
+                        top: '10%',
+                        right: '10%',
+                    }}
+                    animate={{
+                        // Daha az hareket: Sadece kendi bölgesinde hafifçe süzülsün
+                        y: [0, 5, 0, -5, 0],
+                        x: [0, 2, 0, -2, 0],
+                    }}
+                    transition={{
+                        duration: 10, // Daha sakin bir döngü
+                        repeat: Infinity,
+                        ease: "easeInOut", // Daha doğal geçiş
+                    }}
+                >
+                    <motion.div
+                        className="w-full h-full rounded-full bg-yellow-100/10 blur-xl opacity-40 absolute inset-0"
+                        animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }}
+                        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                    <div className="w-16 h-16 bg-yellow-100 rounded-full shadow-[0_0_50px_rgba(253,224,71,0.5)] opacity-90 relative top-4 left-4">
+                        {/* Kraterler */}
+                        <div className="absolute top-3 left-4 w-3 h-3 bg-yellow-200/50 rounded-full opacity-50"></div>
+                        <div className="absolute bottom-4 right-5 w-2 h-2 bg-yellow-200/50 rounded-full opacity-50"></div>
+                        <div className="absolute top-8 right-3 w-1.5 h-1.5 bg-yellow-200/50 rounded-full opacity-50"></div>
+                    </div>
+                </motion.div>
+            )}
 
             {/* Mor Işık Efekti (Üstte) */}
             <div
