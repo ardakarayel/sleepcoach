@@ -469,6 +469,60 @@ async def receive_sleep_data(
         "ai_advice": ai_advice
     }
 
+# ============================================
+# 🤖 DOZIE CHAT ENDPOINT
+# ============================================
+
+# Dozie Ajanını Başlat (Lazy loading daha iyi olabilir ama şimdilik burada)
+try:
+    from agents.dozie import DozieAgent
+except ImportError:
+    from backend.agents.dozie import DozieAgent
+
+dozie_agent = DozieAgent()
+
+class ChatRequest(BaseModel):
+    message: str
+    history: list = [] # [{"role": "user", "content": "..."}, ...]
+
+@app.post("/chat")
+def chat_with_dozie(
+    request: ChatRequest,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user)
+):
+    """
+    Dozie ile sohbet et.
+    Login olmuş kullanıcı ise son uyku verisini de bağlama ekler.
+    """
+    print(f"💬 Chat İsteği: {request.message[:50]}...")
+    
+    # Kullanıcı verisi ve uyku bağlamı
+    username = current_user.username if current_user else "Misafir"
+    sleep_context = None
+    
+    if current_user:
+        # Son uyku verisini çek
+        latest_session = db.query(SleepSession).filter(SleepSession.user_id == current_user.id).order_by(SleepSession.input_date.desc()).first()
+        if latest_session:
+            sleep_context = f"""
+            Son Uyku Tarihi: {latest_session.input_date.strftime("%d.%m.%Y")}
+            Toplam Uyku: {latest_session.total_sleep_formatted}
+            Derin Uyku: {latest_session.deep_formatted}
+            REM Uykusu: {latest_session.rem_formatted}
+            Yatakta Geçen Süre: {latest_session.total_in_bed_formatted}
+            """
+
+    # Dozie'ye sor
+    response = dozie_agent.chat(
+        user_message=request.message,
+        history=request.history,
+        sleep_context=sleep_context,
+        username=username
+    )
+    
+    return {"role": "assistant", "content": response}
+
 @app.get("/latest-sleep")
 def get_latest_sleep(
     db: Session = Depends(get_db),

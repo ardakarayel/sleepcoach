@@ -28,25 +28,50 @@ export default function ChatPage() {
     const handleSend = async () => {
         if (!input.trim()) return;
 
-        const userMsg: Message = { id: Date.now(), role: 'user', content: input };
+        const userText = input;
+        const userMsg: Message = { id: Date.now(), role: 'user', content: userText };
+
         setMessages(prev => [...prev, userMsg]);
         setInput('');
         setIsLoading(true);
 
         try {
-            // Şimdilik sadece frontend tarafında basit bir cevap simülasyonu yapıyoruz.
-            // İleride backend'e bağlanacak.
-            setTimeout(() => {
-                const aiMsg: Message = {
-                    id: Date.now() + 1,
-                    role: 'assistant',
-                    content: "Hmm... İlgşnç bir durum. Aslında uyku düzenin hakkında biraz daha veri toplarsak sana daha iyi tavsiyeler verebilirim. Şimdilik önerim: Bu akşam kafeini biraz erken kes! ☕❌"
-                };
-                setMessages(prev => [...prev, aiMsg]);
-                setIsLoading(false);
-            }, 1500);
+            // Backend'e bağlan
+            const token = localStorage.getItem('token');
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+            const response = await fetch(`${apiUrl}/chat`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({
+                    message: userText,
+                    history: messages.map(m => ({ role: m.role, content: m.content }))
+                })
+            });
+
+            if (!response.ok) throw new Error('Chat hatası');
+
+            const data = await response.json();
+
+            const aiMsg: Message = {
+                id: Date.now() + 1,
+                role: 'assistant',
+                content: data.content
+            };
+
+            setMessages(prev => [...prev, aiMsg]);
         } catch (error) {
             console.error(error);
+            const errorMsg: Message = {
+                id: Date.now() + 1,
+                role: 'assistant',
+                content: "Üzgünüm, şu an sunucuyla iletişim kuramıyorum. Birazdan tekrar dener misin? 😴"
+            };
+            setMessages(prev => [...prev, errorMsg]);
+        } finally {
             setIsLoading(false);
         }
     };
@@ -80,8 +105,8 @@ export default function ChatPage() {
                     >
                         <div
                             className={`max-w-[80%] p-4 rounded-2xl ${msg.role === 'user'
-                                    ? 'bg-indigo-600 text-white rounded-br-none'
-                                    : 'bg-gray-800/80 backdrop-blur-sm text-gray-200 rounded-bl-none border border-white/10'
+                                ? 'bg-indigo-600 text-white rounded-br-none'
+                                : 'bg-gray-800/80 backdrop-blur-sm text-gray-200 rounded-bl-none border border-white/10'
                                 }`}
                         >
                             {msg.content}
