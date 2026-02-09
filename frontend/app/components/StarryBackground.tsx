@@ -1,9 +1,8 @@
 'use client';
 
-// ... imports
+import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-
-// ... interfaces
 
 interface Star {
     id: number;

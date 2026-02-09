@@ -32,6 +32,25 @@ export default function BottomNav() {
                 </svg>
             </Link>
 
+            {/* 🤖 DOZIE (AI CHAT) - MERKEZ BUTON */}
+            <Link href="/chat" className="relative -top-5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-1 rounded-full shadow-[0_0_20px_rgba(168,85,247,0.5)] transition-transform hover:scale-110">
+                <div className="bg-[#0a0a1a] p-3 rounded-full flex items-center justify-center border border-white/20">
+                    {/* Robot / Sparkles İkonu */}
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="url(#gradient-icon)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <defs>
+                            <linearGradient id="gradient-icon" x1="0" y1="0" x2="100%" y2="100%">
+                                <stop offset="0%" stopColor="#c084fc" />
+                                <stop offset="100%" stopColor="#f472b6" />
+                            </linearGradient>
+                        </defs>
+                        <path d="M12 2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" />
+                        <path d="M4 11v2a8 8 0 0 0 16 0v-2" />
+                        <circle cx="12" cy="14" r="4" />
+                        <path d="M12 14h.01" />
+                    </svg>
+                </div>
+            </Link>
+
             {/* Grafikler / İstatistikler */}
             <Link href="/stats" className={`p-2 rounded-xl transition-all ${isActive('/stats') ? 'bg-purple-500/20 text-purple-300' : 'text-gray-500 hover:text-gray-300'}`}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
