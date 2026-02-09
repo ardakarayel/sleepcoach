@@ -127,9 +127,17 @@ export default function Home() {
       {/* Üst Bar ve Navigasyon */}
       <header className="w-full flex justify-between items-center mb-6 sticky top-0 pt-4 pb-2 z-20">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">
-            SleepCoach
-          </h1>
+          <div className="flex flex-col">
+            <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent leading-none">
+              SleepCoach
+            </h1>
+            {user?.username && (
+              <span className="text-[10px] sm:text-xs text-gray-500 font-medium tracking-wide mt-0.5">
+                @{user.username}
+              </span>
+            )}
+          </div>
+
           {/* Çıkış Butonu */}
           <button
             onClick={() => { logout(); router.push('/auth'); }}
