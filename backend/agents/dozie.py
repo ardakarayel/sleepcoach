@@ -1,4 +1,7 @@
+import os
 import json
+from openai import OpenAI
+from dotenv import load_dotenv
 from .dr_neuro import DrNeuro
 from .guru_zen import GuruZen
 from .sergeant import SergeantDemir
