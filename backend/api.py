@@ -502,16 +502,19 @@ def chat_with_dozie(
     sleep_context = None
     
     if current_user:
-        # Son uyku verisini çek
-        latest_session = db.query(SleepSession).filter(SleepSession.user_id == current_user.id).order_by(SleepSession.input_date.desc()).first()
-        if latest_session:
-            sleep_context = f"""
-            Son Uyku Tarihi: {latest_session.input_date.strftime("%d.%m.%Y")}
-            Toplam Uyku: {latest_session.total_sleep_formatted}
-            Derin Uyku: {latest_session.deep_formatted}
-            REM Uykusu: {latest_session.rem_formatted}
-            Yatakta Geçen Süre: {latest_session.total_in_bed_formatted}
-            """
+        # Son 3 uyku verisini çek
+        recent_sessions = db.query(SleepSession).filter(SleepSession.user_id == current_user.id).order_by(SleepSession.input_date.desc()).limit(3).all()
+        
+        if recent_sessions:
+            context_parts = []
+            for session in recent_sessions:
+                part = f"- Tarih: {session.input_date.strftime('%d.%m.%Y')} | Toplam: {session.total_sleep_formatted} | Derin: {session.deep_formatted} | REM: {session.rem_formatted}"
+                context_parts.append(part)
+            
+            sleep_context = "Son Uyku Kayıtları:\n" + "\n".join(context_parts)
+            print(f"📊 Dozie Context Yüklendi ({len(recent_sessions)} kayıt)")
+        else:
+            print("⚠️ Kullanıcının hiç uyku verisi yok.")
 
     # Dozie'ye sor
     response = dozie_agent.chat(

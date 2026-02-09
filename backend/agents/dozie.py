@@ -41,7 +41,7 @@ GÖREVİN:
             base_prompt += f"\nKULLANICI ADI: {username}\n"
             
         if sleep_context:
-            base_prompt += f"\nSON UYKU VERİLERİ:\n{sleep_context}\nBu verilere bakarak yorum yapabilirsin.\n"
+            base_prompt += f"\n🚨 ÖNEMLİ: KULLANICININ SON UYKU VERİLERİ AŞAĞIDADIR. CEVAPLARINDA MUTLAKA BU VERİLERE ATIFTA BULUN:\n{sleep_context}\n\n- Örneğin: 'Dün gece X saat uyumuşsun' gibi spesifik konuş.\n- Verilerdeki düşüş veya yükselişleri fark edersen uyar veya tebrik et.\n"
         
         return base_prompt
 
