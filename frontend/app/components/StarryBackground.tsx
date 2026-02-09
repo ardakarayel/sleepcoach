@@ -24,37 +24,60 @@ interface Meteor {
     delay: number;
 }
 
+interface Cloud {
+    id: number;
+    y: number;
+    size: number;
+    duration: number;
+    delay: number;
+}
+
 export default function StarryBackground() {
     const [stars, setStars] = useState<Star[]>([]);
     const [meteors, setMeteors] = useState<Meteor[]>([]);
+    const [clouds, setClouds] = useState<Cloud[]>([]);
 
     useEffect(() => {
         // Rastgele yıldızlar oluştur
         const generatedStars: Star[] = [];
-        for (let i = 0; i < 70; i++) { // Yıldız sayısını biraz artırdık
+        for (let i = 0; i < 70; i++) {
             generatedStars.push({
                 id: i,
                 x: Math.random() * 100,
                 y: Math.random() * 100,
-                size: Math.random() * 2 + 1, // Biraz daha küçük ve zarif yıldızlar
+                size: Math.random() * 2 + 1,
                 delay: Math.random() * 3,
                 duration: Math.random() * 3 + 2,
             });
         }
         setStars(generatedStars);
 
-        // Kayan yıldızlar (meteorlar) oluştur
+        // Kayan yıldızlar oluştur
         const generatedMeteors: Meteor[] = [];
-        for (let i = 0; i < 4; i++) { // Aynı anda en fazla 4 potansiyel meteor
+        for (let i = 0; i < 4; i++) {
             generatedMeteors.push({
                 id: i,
-                x: Math.random() * 100, // Ekranın herhangi bir yerinden başlayabilir (ama yukarıdan)
-                y: Math.random() * 50, // Sadece üst yarıdan başlasın
-                duration: Math.random() * 1 + 0.5, // 0.5s - 1.5s arası hızlı geçiş
-                delay: Math.random() * 10, // İlk başlaması için rastgele bekleme
+                x: Math.random() * 100,
+                y: Math.random() * 50,
+                duration: Math.random() * 1 + 0.5,
+                delay: Math.random() * 10,
             });
         }
         setMeteors(generatedMeteors);
+
+        // Bulutlar oluştur
+        const generatedClouds: Cloud[] = [];
+        for (let i = 0; i < 3; i++) { // 3 adet büyük, yavaş bulut
+            generatedClouds.push({
+                id: i,
+                y: Math.random() * 40, // Sadece üst yarıda
+                size: Math.random() * 200 + 300, // 300px - 500px arası devasa boyut
+                duration: Math.random() * 40 + 60, // 60s - 100s arası çok yavaş geçiş
+                delay: Math.random() * -50, // Bazıları ekranın ortasından başlaması için negatif delay
+            });
+        }
+        setClouds(generatedClouds);
+
     }, []);
 
     return (
@@ -117,25 +140,58 @@ export default function StarryBackground() {
                 />
             ))}
 
-            {/* Ay (Moon) - Sağ Üst Köşe */}
+            {/* Bulutlar */}
+            {clouds.map((cloud) => (
+                <motion.div
+                    key={cloud.id}
+                    className="absolute bg-white/5 blur-3xl rounded-full"
+                    style={{
+                        top: `${cloud.y}%`,
+                        left: `-20%`, // Ekran dışından başla
+                        width: `${cloud.size}px`,
+                        height: `${cloud.size / 2}px`,
+                    }}
+                    animate={{
+                        x: ['0vw', '120vw'], // Ekranı baştan sona geç
+                    }}
+                    transition={{
+                        duration: cloud.duration,
+                        delay: cloud.delay,
+                        repeat: Infinity,
+                        ease: "linear",
+                    }}
+                />
+            ))}
+
+            {/* Ay (Moon) - Gökyüzünde Yavaş Hareket */}
             <motion.div
-                className="absolute top-10 right-10 w-24 h-24 rounded-full bg-yellow-100/10 blur-xl opacity-40 z-0"
+                className="absolute w-24 h-24 z-0"
+                style={{
+                    top: '10%',
+                    right: '10%',
+                }}
                 animate={{
-                    scale: [1, 1.1, 1],
-                    opacity: [0.3, 0.5, 0.3],
+                    x: [0, -50, -100, 0], // Hafif sağa sola salınım veya yörünge hareketi
+                    y: [0, 10, 0, -10],
                 }}
                 transition={{
-                    duration: 4,
+                    duration: 60, // Çok yavaş hareket (1 dakika)
                     repeat: Infinity,
-                    ease: "easeInOut",
+                    ease: "linear",
                 }}
-            />
-            <div className="absolute top-12 right-12 w-16 h-16 bg-yellow-100 rounded-full shadow-[0_0_50px_rgba(253,224,71,0.5)] opacity-90 z-0">
-                {/* Kraterler */}
-                <div className="absolute top-3 left-4 w-3 h-3 bg-yellow-200/50 rounded-full opacity-50"></div>
-                <div className="absolute bottom-4 right-5 w-2 h-2 bg-yellow-200/50 rounded-full opacity-50"></div>
-                <div className="absolute top-8 right-3 w-1.5 h-1.5 bg-yellow-200/50 rounded-full opacity-50"></div>
-            </div>
+            >
+                <motion.div
+                    className="w-full h-full rounded-full bg-yellow-100/10 blur-xl opacity-40 absolute inset-0"
+                    animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }}
+                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                />
+                <div className="w-16 h-16 bg-yellow-100 rounded-full shadow-[0_0_50px_rgba(253,224,71,0.5)] opacity-90 relative top-4 left-4">
+                    {/* Kraterler */}
+                    <div className="absolute top-3 left-4 w-3 h-3 bg-yellow-200/50 rounded-full opacity-50"></div>
+                    <div className="absolute bottom-4 right-5 w-2 h-2 bg-yellow-200/50 rounded-full opacity-50"></div>
+                    <div className="absolute top-8 right-3 w-1.5 h-1.5 bg-yellow-200/50 rounded-full opacity-50"></div>
+                </div>
+            </motion.div>
 
             {/* Mor Işık Efekti (Üstte) */}
             <div
