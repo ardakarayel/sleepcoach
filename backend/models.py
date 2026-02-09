@@ -91,3 +91,25 @@ class SleepSegment(Base):
     
     session = relationship("SleepSession", back_populates="segments")
 
+
+# ============================================
+# 💬 SOHBET MESAJI MODELİ (Chat History)
+# ============================================
+class ChatMessage(Base):
+    """
+    Dozie ile yapılan sohbet geçmişi.
+    Kullanıcının ve AI'ın mesajlarını saklar.
+    """
+    __tablename__ = "chat_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    role = Column(String, nullable=False)  # 'user' veya 'assistant'
+    content = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    user = relationship("User", back_populates="chat_messages")
+
+# User modeline chat_messages ilişkisini ekle
+User.chat_messages = relationship("ChatMessage", back_populates="user", cascade="all, delete-orphan")
+

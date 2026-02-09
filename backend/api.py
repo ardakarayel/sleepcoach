@@ -485,12 +485,43 @@ class ChatRequest(BaseModel):
     message: str
     history: list = [] # [{"role": "user", "content": "..."}, ...]
 
+# --- Chat Message Model ---
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    role = Column(String)  # 'user' veya 'assistant'
+    content = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="messages")
+
+User.messages = relationship("ChatMessage", back_populates="user")
+
+# Tabloları oluştur (yeni tablo eklendiği için)
+Base.metadata.create_all(bind=engine)
+
+@app.get("/chat/history")
+def get_chat_history(authorization: str = Header(None), db: Session = Depends(get_db)):
+    if not authorization:
+        return []
+    
+    token = authorization.split(" ")[1]
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username = payload.get("sub")
+        user = db.query(User).filter(User.username == username).first()
+        if not user:
+            return []
+            
+        # Son 50 mesajı getir
+        messages = db.query(ChatMessage).filter(ChatMessage.user_id == user.id).order_by(ChatMessage.created_at.asc()).limit(50).all()
+        return [{"role": m.role, "content": m.content, "id": m.id} for m in messages]
+    except:
+        return []
+
 @app.post("/chat")
-def chat_with_dozie(
-    request: ChatRequest,
-    db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user)
-):
+def chat_with_dozie(request: ChatRequest, authorization: str = Header(None), db: Session = Depends(get_db)):
     """
     Dozie ile sohbet et.
     Login olmuş kullanıcı ise son uyku verisini de bağlama ekler.
@@ -498,9 +529,25 @@ def chat_with_dozie(
     print(f"💬 Chat İsteği: {request.message[:50]}...")
     
     # Kullanıcı verisi ve uyku bağlamı
-    username = current_user.username if current_user else "Misafir"
+    username = "Misafir"
+    current_user = None
+    if authorization:
+        try:
+            token = authorization.split(" ")[1]
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            username = payload.get("sub")
+            current_user = db.query(User).filter(User.username == username).first()
+        except Exception as e:
+            print(f"⚠️ Chat endpoint'inde token çözme hatası: {e}")
+            # Hata durumunda current_user None kalır, username "Misafir" kalır.
+
+    # Kullanıcı mesajını kaydet
+    if current_user:
+        user_msg = ChatMessage(user_id=current_user.id, role="user", content=request.message)
+        db.add(user_msg)
+        db.commit()
+
     sleep_context = None
-    
     if current_user:
         # Son 3 uyku verisini çek
         recent_sessions = db.query(SleepSession).filter(SleepSession.user_id == current_user.id).order_by(SleepSession.input_date.desc()).limit(3).all()
@@ -517,14 +564,20 @@ def chat_with_dozie(
             print("⚠️ Kullanıcının hiç uyku verisi yok.")
 
     # Dozie'ye sor
-    response = dozie_agent.chat(
+    response_content = dozie_agent.chat(
         user_message=request.message,
         history=request.history,
         sleep_context=sleep_context,
         username=username
     )
     
-    return {"role": "assistant", "content": response}
+    # Asistan cevabını kaydet
+    if current_user:
+        ai_msg = ChatMessage(user_id=current_user.id, role="assistant", content=response_content)
+        db.add(ai_msg)
+        db.commit()
+    
+    return {"role": "assistant", "content": response_content}
 
 @app.get("/latest-sleep")
 def get_latest_sleep(

@@ -12,11 +12,10 @@ interface Message {
 
 export default function ChatPage() {
     const { token } = useAuth();
-    const [messages, setMessages] = useState<Message[]>([
-        { id: 1, role: 'assistant', content: "Selam uykucu! Ben Dozie. 😴 Bugün nasıl hissediyorsun? Dün geceki uykun nasıldı?" }
-    ]);
+    const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [historyLoaded, setHistoryLoaded] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
@@ -26,6 +25,41 @@ export default function ChatPage() {
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
+
+    // Sayfa yüklenince geçmiş mesajları çek
+    useEffect(() => {
+        const loadHistory = async () => {
+            if (!token) {
+                // Token yoksa varsayılan karşılama mesajı
+                setMessages([{ id: 1, role: 'assistant', content: "Selam uykucu! Ben Dozie. 😴 Bugün nasıl hissediyorsun?" }]);
+                setHistoryLoaded(true);
+                return;
+            }
+
+            try {
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                const response = await fetch(`${apiUrl}/chat/history`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    const history = await response.json();
+                    if (history && history.length > 0) {
+                        setMessages(history);
+                    } else {
+                        // Geçmiş boşsa varsayılan mesaj
+                        setMessages([{ id: 1, role: 'assistant', content: "Selam uykucu! Ben Dozie. 😴 Bugün nasıl hissediyorsun? Dün geceki uykun nasıldı?" }]);
+                    }
+                }
+            } catch (error) {
+                console.error('Geçmiş yüklenemedi:', error);
+                setMessages([{ id: 1, role: 'assistant', content: "Selam uykucu! Ben Dozie. 😴 Bugün nasıl hissediyorsun?" }]);
+            }
+            setHistoryLoaded(true);
+        };
+
+        loadHistory();
+    }, [token]);
 
     const handleSend = async () => {
         if (!input.trim()) return;
