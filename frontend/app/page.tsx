@@ -113,7 +113,7 @@ export default function Home() {
   const isEmptySession = data.stats.total_sleep === 0; // Veri boş mu kontrolü
 
   return (
-    <main className="min-h-screen text-white px-6 py-4 flex flex-col items-center max-w-md mx-auto relative z-10 overflow-y-auto pb-20">
+    <main className="min-h-screen text-white px-6 py-4 flex flex-col items-center max-w-md mx-auto relative z-10 overflow-y-auto pb-32">
       {/* Yıldızlı Gece Arka Planı */}
       <StarryBackground />
 
@@ -218,6 +218,8 @@ export default function Home() {
         </p>
       </div>
 
+      {/* Alt Menü İçin Boşluk */}
+      <div className="h-24 w-full shrink-0" />
     </main>
   );
 }

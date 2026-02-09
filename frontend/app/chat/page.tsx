@@ -77,7 +77,7 @@ export default function ChatPage() {
     };
 
     return (
-        <main className="min-h-screen text-white relative flex flex-col pt-4 overflow-hidden">
+        <main className="min-h-screen text-white relative flex flex-col pt-4 overflow-hidden pb-32">
             <StarryBackground />
 
             {/* Header */}
