@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import StarryBackground from '../components/StarryBackground';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Message {
     id: number;
@@ -10,6 +11,7 @@ interface Message {
 }
 
 export default function ChatPage() {
+    const { token } = useAuth();
     const [messages, setMessages] = useState<Message[]>([
         { id: 1, role: 'assistant', content: "Selam uykucu! Ben Dozie. 😴 Bugün nasıl hissediyorsun? Dün geceki uykun nasıldı?" }
     ]);
@@ -37,7 +39,6 @@ export default function ChatPage() {
 
         try {
             // Backend'e bağlan
-            const token = localStorage.getItem('token');
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
             const response = await fetch(`${apiUrl}/chat`, {
